@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { assertScopedRequest } from "../../src/contracts/inventory/availability";
 import { getAvailability } from "../../src/gateway/inventoryGateway";
+import { forwardInventoryAvailability } from "../../src/gateway/inventoryProxy";
 describe("Inventory Portal contract boundary", () => {
   it("requires correlation and scope inputs", () => {
     expect(() => assertScopedRequest({ companyId: 1, branchId: 7, correlationId: "" })).toThrow("correlationId");
@@ -42,5 +43,25 @@ describe("Inventory Portal contract boundary", () => {
         async () => new Response("unavailable", { status: 502 }),
       ),
     ).rejects.toMatchObject({ kind: "transport", message: "Inventory gateway returned 502" });
+  });
+
+  it("forwards authorization and correlation through the server proxy", async () => {
+    let received: RequestInit | undefined;
+    const upstream = await forwardInventoryAvailability(
+      { body: '{"companyId":1}', authorization: "Bearer test-token", correlationId: "corr-6" },
+      "http://inventory-gateway/",
+      async (_input, init) => {
+        received = init;
+        return new Response('{"items":[]}', { status: 200 });
+      },
+    );
+
+    expect(await upstream.json()).toEqual({ items: [] });
+    expect(received?.headers).toEqual({
+      "content-type": "application/json",
+      "x-correlation-id": "corr-6",
+      authorization: "Bearer test-token",
+    });
+    expect(received?.body).toBe('{"companyId":1}');
   });
 });

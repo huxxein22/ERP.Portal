@@ -1,9 +1,25 @@
 import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
+import { assertScopedRequest } from './src/contracts/inventory/availabilityRuntime.mjs';
+import { forwardInventoryAvailability } from './src/gateway/inventoryProxy.mjs';
 
 const port = Number(process.env.PORT ?? 3000);
 const inventoryBaseUrl = process.env.INVENTORY_BASE_URL;
 const html = `<!doctype html><html><head><meta charset="utf-8"><title>ERP Portal</title></head><body><main><h1>ERP Portal</h1><p>Inventory gateway boundary is active.</p></main></body></html>`;
+
+const readBody = async (request) => {
+  const chunks = [];
+  for await (const chunk of request) chunks.push(chunk);
+  return Buffer.concat(chunks).toString('utf8');
+};
+
+const writeProxyResponse = async (response, upstream) => {
+  const body = await upstream.text();
+  response.writeHead(upstream.status, {
+    'content-type': upstream.headers.get('content-type') ?? 'application/json',
+  });
+  response.end(body);
+};
 
 const server = createServer((request, response) => {
   if (request.url === '/health') {
@@ -34,6 +50,50 @@ const server = createServer((request, response) => {
       .catch(() => {
         response.writeHead(502, { 'content-type': 'application/json' });
         response.end(JSON.stringify({ service: 'ERP.Portal', status: 'upstream-unavailable' }));
+      });
+    return;
+  }
+
+  if (request.method === 'POST' && request.url === '/api/inventory/availability') {
+    readBody(request)
+      .then(async (body) => {
+        let payload;
+        try {
+          payload = JSON.parse(body);
+          const headerCorrelationId = request.headers['x-correlation-id'];
+          if (!payload.correlationId && headerCorrelationId) payload.correlationId = headerCorrelationId;
+          assertScopedRequest(payload);
+        } catch (error) {
+          response.writeHead(400, { 'content-type': 'application/json' });
+          response.end(JSON.stringify({ error: error instanceof Error ? error.message : 'Invalid request' }));
+          return;
+        }
+
+        const correlationId = request.headers['x-correlation-id'] ?? payload.correlationId ?? randomUUID();
+        if (!inventoryBaseUrl) {
+          response.writeHead(503, { 'content-type': 'application/json' });
+          response.end(JSON.stringify({ service: 'ERP.Portal', status: 'inventory-gateway-unconfigured' }));
+          return;
+        }
+
+        try {
+          const upstream = await forwardInventoryAvailability(
+            {
+              body,
+              authorization: request.headers.authorization,
+              correlationId,
+            },
+            inventoryBaseUrl,
+          );
+          await writeProxyResponse(response, upstream);
+        } catch {
+          response.writeHead(502, { 'content-type': 'application/json' });
+          response.end(JSON.stringify({ service: 'ERP.Portal', status: 'inventory-gateway-unavailable' }));
+        }
+      })
+      .catch(() => {
+        response.writeHead(400, { 'content-type': 'application/json' });
+        response.end(JSON.stringify({ error: 'Invalid request body' }));
       });
     return;
   }
