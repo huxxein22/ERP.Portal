@@ -16,6 +16,7 @@ import { renderInventoryCount } from './src/components/inventory/inventoryCount.
 import { renderInventoryPutaway } from './src/components/inventory/inventoryPutaway.mjs';
 import { renderInventoryConfiguration } from './src/components/inventory/inventoryConfiguration.mjs';
 import { renderInventoryBranchBalances } from './src/components/inventory/inventoryBranchBalances.mjs';
+import { renderInventoryLocations } from './src/components/inventory/inventoryLocations.mjs';
 import { assertBranchQuery } from './src/contracts/inventory/branchBalancesRuntime.mjs';
 
 const port = Number(process.env.PORT ?? 3000);
@@ -88,6 +89,12 @@ const server = createServer((request, response) => {
   if (request.method === 'GET' && request.url === '/inventory/branch-balances') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     response.end(renderInventoryBranchBalances());
+    return;
+  }
+
+  if (request.method === 'GET' && request.url === '/inventory/locations') {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    response.end(renderInventoryLocations());
     return;
   }
 
