@@ -45,7 +45,7 @@ describe('ERP Portal Inventory E2E boundary', () => {
   });
 
   it('serves every extracted Inventory screen', async () => {
-    for (const path of ['/inventory', '/inventory/operations', '/inventory/valuation', '/inventory/import', '/inventory/count', '/inventory/putaway', '/inventory/putaway/write', '/inventory/configuration', '/inventory/configuration/write', '/inventory/rules/write', '/inventory/branch-balances', '/inventory/locations', '/inventory/stock-by-variant']) {
+    for (const path of ['/inventory', '/inventory/operations', '/inventory/valuation', '/inventory/import', '/inventory/count', '/inventory/putaway', '/inventory/putaway/write', '/inventory/moves', '/inventory/configuration', '/inventory/configuration/write', '/inventory/rules/write', '/inventory/branch-balances', '/inventory/locations', '/inventory/stock-by-variant']) {
       const response = await fetch(`${baseUrl}${path}`);
       expect(response.status, path).toBe(200);
       expect(response.headers.get('content-type')).toContain('text/html');
@@ -78,5 +78,12 @@ describe('ERP Portal Inventory E2E boundary', () => {
       body: '{"companyId":1,"code":"route-1","name":"Route 1"}',
     });
     expect(unconfiguredWrite.status).toBe(503);
+
+    const unconfiguredStockWrite = await fetch(`${baseUrl}/api/inventory/stock/receive`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{"companyId":1,"warehouseId":11,"productCode":"P-1","variantCode":"V-1","quantity":1}',
+    });
+    expect(unconfiguredStockWrite.status).toBe(503);
   });
 });

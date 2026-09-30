@@ -21,6 +21,7 @@ import { renderInventoryStockByVariant } from './src/components/inventory/invent
 import { renderInventoryConfigurationWrite } from './src/components/inventory/inventoryConfigurationWrite.mjs';
 import { renderInventoryPutawayWrite } from './src/components/inventory/inventoryPutawayWrite.mjs';
 import { renderInventoryRuleWrite } from './src/components/inventory/inventoryRuleWrite.mjs';
+import { renderInventoryMoves } from './src/components/inventory/inventoryMoves.mjs';
 import { assertBranchQuery } from './src/contracts/inventory/branchBalancesRuntime.mjs';
 
 const port = Number(process.env.PORT ?? 3000);
@@ -123,6 +124,12 @@ const server = createServer((request, response) => {
   if (request.method === 'GET' && request.url === '/inventory/rules/write') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     response.end(renderInventoryRuleWrite());
+    return;
+  }
+
+  if (request.method === 'GET' && request.url === '/inventory/moves') {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    response.end(renderInventoryMoves());
     return;
   }
 
@@ -229,7 +236,7 @@ const server = createServer((request, response) => {
     return;
   }
 
-  if (request.method === 'POST' && ['/api/inventory/putaway/rules', '/api/inventory/routes', '/api/inventory/rules', '/api/inventory/delivery-methods'].includes(request.url)) {
+  if (request.method === 'POST' && ['/api/inventory/putaway/rules', '/api/inventory/routes', '/api/inventory/rules', '/api/inventory/delivery-methods', '/api/inventory/stock/receive', '/api/inventory/stock/issue', '/api/inventory/stock/adjust'].includes(request.url)) {
     readBody(request).then(async (body) => {
       if (!body.trim()) {
         response.writeHead(400, { 'content-type': 'application/json' });
