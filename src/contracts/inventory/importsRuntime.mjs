@@ -11,5 +11,7 @@ export function assertImportPreviewRequest(request, staging = false) {
     if (!Number.isInteger(row?.rowNumber) || row.rowNumber < 1) throw new Error('rowNumber must be positive');
     if (!String(row?.productCode ?? '').trim()) throw new Error('productCode is required');
     if (typeof row?.rawQuantity !== 'string') throw new Error('rawQuantity must be text');
+    if (row?.externalId !== undefined && typeof row.externalId !== 'string') throw new Error('externalId must be text');
+    if (row?.barcode !== undefined && typeof row.barcode !== 'string') throw new Error('barcode must be text');
   }
 }

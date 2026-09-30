@@ -5,6 +5,8 @@ export type InventoryImportRow = {
   productCode: string;
   variantCode?: string;
   rawQuantity: string;
+  externalId?: string;
+  barcode?: string;
 };
 
 export type InventoryImportPreviewRequest = {
@@ -25,6 +27,9 @@ export type InventoryImportPreviewResult = {
   variantCode: string;
   countedQuantity?: number;
   reason?: string;
+  catalogProductId?: string;
+  catalogVariantId?: string;
+  catalogSourceVersion?: string;
 };
 
 export type InventoryImportPreviewResponse = {
