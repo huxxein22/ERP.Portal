@@ -76,6 +76,13 @@ describe('ERP Portal Inventory E2E boundary', () => {
     const invalidCount = await fetch(`${baseUrl}/api/inventory/count?companyId=1&warehouseId=11&sessionId=&correlationId=e2e`);
     expect(invalidCount.status).toBe(400);
 
+    const unconfiguredCountStart = await fetch(`${baseUrl}/api/inventory/count/start`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{"companyId":1,"branchId":7,"warehouseId":11,"reference":"e2e-count","idempotencyKey":"e2e-count-start"}',
+    });
+    expect(unconfiguredCountStart.status).toBe(503);
+
     const invalidBranch = await fetch(`${baseUrl}/api/inventory/branch-availability?companyId=1&branchId=0&correlationId=e2e`);
     expect(invalidBranch.status).toBe(400);
 
