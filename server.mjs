@@ -6,6 +6,7 @@ import { assertOperationTypesQuery, assertStockLedgerQuery } from './src/contrac
 import { forwardInventoryAvailability, forwardInventoryRead } from './src/gateway/inventoryProxy.mjs';
 import { renderInventoryOverview } from './src/components/inventory/inventoryOverview.mjs';
 import { renderInventoryOperations } from './src/components/inventory/inventoryOperations.mjs';
+import { renderInventoryValuation } from './src/components/inventory/inventoryValuation.mjs';
 
 const port = Number(process.env.PORT ?? 3000);
 const inventoryBaseUrl = process.env.INVENTORY_BASE_URL;
@@ -41,6 +42,12 @@ const server = createServer((request, response) => {
   if (request.method === 'GET' && request.url === '/inventory/operations') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     response.end(renderInventoryOperations());
+    return;
+  }
+
+  if (request.method === 'GET' && request.url === '/inventory/valuation') {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    response.end(renderInventoryValuation());
     return;
   }
 
