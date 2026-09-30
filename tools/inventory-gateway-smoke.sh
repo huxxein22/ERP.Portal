@@ -51,6 +51,17 @@ grep -Eq '"action"[[:space:]]*:[[:space:]]*"would_stage"' <<<"$import_preview"
 grep -Eq '"incomingUnitCost"[[:space:]]*:[[:space:]]*80' <<<"$import_preview"
 grep -Eq '"costPreviewStatus"[[:space:]]*:[[:space:]]*"calculated_read_only"' <<<"$import_preview"
 
+catalog_cost_preview="$(curl --fail --silent --show-error \
+  -X POST \
+  -H 'authorization: Bearer dev-inventory-token' \
+  -H 'content-type: application/json' \
+  -H 'x-correlation-id: portal-catalog-cost-preview-smoke' \
+  --data '{"companyId":1,"branchId":7,"warehouseId":192,"headers":["product_code","variant_code","quantity"],"rows":[{"rowNumber":1,"locationId":192,"productCode":"SKU-1","variantCode":"BLUE-M","rawQuantity":"2"}],"correlationId":"portal-catalog-cost-preview-smoke"}' \
+  "$portal_url/api/inventory/import/preview")"
+grep -Eq '"accepted"[[:space:]]*:[[:space:]]*true' <<<"$catalog_cost_preview"
+grep -Eq '"incomingUnitCost"[[:space:]]*:[[:space:]]*80' <<<"$catalog_cost_preview"
+grep -Eq '"costPreviewStatus"[[:space:]]*:[[:space:]]*"catalog_cost_read_only"' <<<"$catalog_cost_preview"
+
 import_stage="$(curl --fail --silent --show-error \
   -X POST \
   -H 'authorization: Bearer dev-inventory-token' \
