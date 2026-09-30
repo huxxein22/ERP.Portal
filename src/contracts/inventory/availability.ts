@@ -1,6 +1,15 @@
 export type InventoryScope = { companyId: number; branchId: number; warehouseId?: number };
 export type InventoryAvailabilityRequest = InventoryScope & { correlationId: string };
-export type InventoryAvailabilityResponse = { items: Array<{ productId: string; quantity: number }> };
+export type InventoryAvailabilityResponse = {
+  items: Array<{
+    productCode: string;
+    variantCode: string;
+    warehouseId: number;
+    onHand: number;
+    reserved: number;
+    available: number;
+  }>;
+};
 export type InventoryGatewayError = { kind: "unauthenticated" } | { kind: "permission-denied"; scope: InventoryScope } | { kind: "transport"; message: string };
 export function assertScopedRequest(request: InventoryAvailabilityRequest): void {
   if (!request.correlationId.trim()) throw new Error("correlationId is required");
