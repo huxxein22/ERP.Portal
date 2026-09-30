@@ -4,10 +4,11 @@ import { assertScopedRequest } from './src/contracts/inventory/availabilityRunti
 import { assertValuationQuery } from './src/contracts/inventory/valuationRuntime.mjs';
 import { assertOperationTypesQuery, assertStockLedgerQuery } from './src/contracts/inventory/operationsRuntime.mjs';
 import { forwardInventoryAvailability, forwardInventoryRead } from './src/gateway/inventoryProxy.mjs';
+import { renderInventoryOverview } from './src/components/inventory/inventoryOverview.mjs';
 
 const port = Number(process.env.PORT ?? 3000);
 const inventoryBaseUrl = process.env.INVENTORY_BASE_URL;
-const html = `<!doctype html><html><head><meta charset="utf-8"><title>ERP Portal</title></head><body><main><h1>ERP Portal</h1><p>Inventory gateway boundary is active.</p></main></body></html>`;
+const html = renderInventoryOverview();
 
 const readBody = async (request) => {
   const chunks = [];
@@ -27,6 +28,12 @@ const server = createServer((request, response) => {
   if (request.url === '/health') {
     response.writeHead(200, { 'content-type': 'application/json' });
     response.end(JSON.stringify({ service: 'ERP.Portal', status: 'ok' }));
+    return;
+  }
+
+  if (request.method === 'GET' && request.url === '/inventory') {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    response.end(renderInventoryOverview());
     return;
   }
 
