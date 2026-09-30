@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { assertScopedRequest } from "../../src/contracts/inventory/availability";
 import { getAvailability } from "../../src/gateway/inventoryGateway";
 import { forwardInventoryAvailability } from "../../src/gateway/inventoryProxy";
-import { getCount, listPutawayRules, getStockLedger, getValuation, listLocations, listOperationTypes, listWarehouses } from "../../src/gateway/inventoryGateway";
+import { getCount, listDeliveryMethods, listPutawayRules, listRoutes, getStockLedger, getValuation, listLocations, listOperationTypes, listWarehouses } from "../../src/gateway/inventoryGateway";
 import { previewStockImport } from "../../src/gateway/inventoryGateway";
 describe("Inventory Portal contract boundary", () => {
   it("requires correlation and scope inputs", () => {
@@ -154,5 +154,20 @@ describe("Inventory Portal contract boundary", () => {
     });
     expect(requestedUrl).toContain("companyId=1");
     expect(requestedUrl).toContain("branchId=7");
+  });
+
+  it("preserves company scope for routes and delivery methods", async () => {
+    let routesUrl = "";
+    let deliveryUrl = "";
+    await listRoutes({ companyId: 1, correlationId: "corr-routes" }, async (input) => {
+      routesUrl = String(input);
+      return new Response(JSON.stringify({ routes: [], rules: [] }), { status: 200 });
+    });
+    await listDeliveryMethods({ companyId: 1, correlationId: "corr-delivery" }, async (input) => {
+      deliveryUrl = String(input);
+      return new Response(JSON.stringify({ items: [] }), { status: 200 });
+    });
+    expect(routesUrl).toContain("companyId=1");
+    expect(deliveryUrl).toContain("activeOnly=true");
   });
 });

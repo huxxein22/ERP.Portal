@@ -10,6 +10,7 @@ import { assertOperationTypesQuery, assertStockLedgerQuery, type InventoryOperat
 import { assertImportPreviewRequest, type InventoryImportPreviewRequest, type InventoryImportPreviewResponse } from "../contracts/inventory/imports";
 import { assertCountQuery, type InventoryCountQuery, type InventoryCountResponse } from "../contracts/inventory/counts";
 import { assertPutawayQuery, type InventoryPutawayQuery, type InventoryPutawayRule } from "../contracts/inventory/putaway";
+import { assertCompanyQuery, type InventoryCompanyQuery, type InventoryDeliveryMethod, type InventoryRoute, type InventoryRule } from "../contracts/inventory/configuration";
 export async function getAvailability(request: InventoryAvailabilityRequest, fetcher: typeof fetch = fetch): Promise<InventoryAvailabilityResponse> {
   assertScopedRequest(request);
   const response = await fetcher("/api/inventory/availability", {
@@ -128,5 +129,23 @@ export function listPutawayRules(query: InventoryPutawayQuery, fetcher: typeof f
       throw { kind, scope: query, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
     }
     return response.json() as Promise<{ items: InventoryPutawayRule[] }>;
+  });
+}
+
+export function listRoutes(query: InventoryCompanyQuery, fetcher: typeof fetch = fetch): Promise<{ routes: InventoryRoute[]; rules: InventoryRule[] }> {
+  assertCompanyQuery(query);
+  const params = new URLSearchParams({ companyId: String(query.companyId), correlationId: query.correlationId });
+  return fetcher(`/api/inventory/routes?${params.toString()}`, { headers: { 'x-correlation-id': query.correlationId } }).then(async (response) => {
+    if (!response.ok) throw { kind: response.status === 401 ? 'unauthenticated' : response.status === 403 ? 'permission-denied' : 'transport', scope: query, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
+    return response.json() as Promise<{ routes: InventoryRoute[]; rules: InventoryRule[] }>;
+  });
+}
+
+export function listDeliveryMethods(query: InventoryCompanyQuery, fetcher: typeof fetch = fetch): Promise<{ items: InventoryDeliveryMethod[] }> {
+  assertCompanyQuery(query);
+  const params = new URLSearchParams({ companyId: String(query.companyId), activeOnly: 'true', correlationId: query.correlationId });
+  return fetcher(`/api/inventory/delivery-methods?${params.toString()}`, { headers: { 'x-correlation-id': query.correlationId } }).then(async (response) => {
+    if (!response.ok) throw { kind: response.status === 401 ? 'unauthenticated' : response.status === 403 ? 'permission-denied' : 'transport', scope: query, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
+    return response.json() as Promise<{ items: InventoryDeliveryMethod[] }>;
   });
 }

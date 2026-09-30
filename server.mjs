@@ -6,6 +6,7 @@ import { assertOperationTypesQuery, assertStockLedgerQuery } from './src/contrac
 import { assertImportPreviewRequest } from './src/contracts/inventory/importsRuntime.mjs';
 import { assertCountQuery } from './src/contracts/inventory/countsRuntime.mjs';
 import { assertPutawayQuery } from './src/contracts/inventory/putawayRuntime.mjs';
+import { assertCompanyQuery } from './src/contracts/inventory/configurationRuntime.mjs';
 import { forwardInventoryAvailability, forwardInventoryRead, forwardInventoryWrite } from './src/gateway/inventoryProxy.mjs';
 import { renderInventoryOverview } from './src/components/inventory/inventoryOverview.mjs';
 import { renderInventoryOperations } from './src/components/inventory/inventoryOperations.mjs';
@@ -13,6 +14,7 @@ import { renderInventoryValuation } from './src/components/inventory/inventoryVa
 import { renderInventoryImport } from './src/components/inventory/inventoryImport.mjs';
 import { renderInventoryCount } from './src/components/inventory/inventoryCount.mjs';
 import { renderInventoryPutaway } from './src/components/inventory/inventoryPutaway.mjs';
+import { renderInventoryConfiguration } from './src/components/inventory/inventoryConfiguration.mjs';
 
 const port = Number(process.env.PORT ?? 3000);
 const inventoryBaseUrl = process.env.INVENTORY_BASE_URL;
@@ -72,6 +74,12 @@ const server = createServer((request, response) => {
   if (request.method === 'GET' && request.url === '/inventory/putaway') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     response.end(renderInventoryPutaway());
+    return;
+  }
+
+  if (request.method === 'GET' && request.url === '/inventory/configuration') {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    response.end(renderInventoryConfiguration());
     return;
   }
 
@@ -178,7 +186,7 @@ const server = createServer((request, response) => {
     return;
   }
 
-  if (request.method === 'GET' && (request.url?.startsWith('/api/inventory/warehouses') || request.url?.startsWith('/api/inventory/locations') || request.url?.startsWith('/api/inventory/valuation') || request.url?.startsWith('/api/inventory/operation-types') || request.url?.startsWith('/api/inventory/ledger') || request.url?.startsWith('/api/inventory/count') || request.url?.startsWith('/api/inventory/putaway/rules'))) {
+  if (request.method === 'GET' && (request.url?.startsWith('/api/inventory/warehouses') || request.url?.startsWith('/api/inventory/locations') || request.url?.startsWith('/api/inventory/valuation') || request.url?.startsWith('/api/inventory/operation-types') || request.url?.startsWith('/api/inventory/ledger') || request.url?.startsWith('/api/inventory/count') || request.url?.startsWith('/api/inventory/putaway/rules') || request.url?.startsWith('/api/inventory/routes') || request.url?.startsWith('/api/inventory/delivery-methods'))) {
     const url = new URL(request.url, `http://${request.headers.host ?? 'localhost'}`);
     const path = url.pathname;
     const companyId = Number(url.searchParams.get('companyId'));
@@ -191,6 +199,8 @@ const server = createServer((request, response) => {
     const isLedger = path.endsWith('/ledger');
     const isCount = path.endsWith('/count');
     const isPutaway = path.endsWith('/putaway/rules');
+    const isRoutes = path.endsWith('/routes');
+    const isDeliveryMethods = path.endsWith('/delivery-methods');
     try {
       if (isValuation) {
         assertValuationQuery({ companyId, warehouseId: Number(warehouseIdValue), correlationId });
@@ -202,6 +212,8 @@ const server = createServer((request, response) => {
         assertCountQuery({ companyId, warehouseId: Number(warehouseIdValue), sessionId: url.searchParams.get('sessionId') ?? '', correlationId });
       } else if (isPutaway) {
         assertPutawayQuery({ companyId, branchId, correlationId });
+      } else if (isRoutes || isDeliveryMethods) {
+        assertCompanyQuery({ companyId, correlationId });
       } else {
         assertScopedRequest({ companyId, branchId, warehouseId: warehouseIdValue ? Number(warehouseIdValue) : undefined, correlationId });
         if (requiresWarehouse && (!warehouseIdValue || Number(warehouseIdValue) <= 0)) throw new Error('warehouseId is required');
