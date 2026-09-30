@@ -1,12 +1,33 @@
 import { createServer } from 'node:http';
 
 const port = Number(process.env.PORT ?? 3000);
+const inventoryBaseUrl = process.env.INVENTORY_BASE_URL;
 const html = `<!doctype html><html><head><meta charset="utf-8"><title>ERP Portal</title></head><body><main><h1>ERP Portal</h1><p>Inventory gateway boundary is active.</p></main></body></html>`;
 
 const server = createServer((request, response) => {
   if (request.url === '/health') {
     response.writeHead(200, { 'content-type': 'application/json' });
     response.end(JSON.stringify({ service: 'ERP.Portal', status: 'ok' }));
+    return;
+  }
+
+  if (request.url === '/inventory-backend/health') {
+    if (!inventoryBaseUrl) {
+      response.writeHead(503, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({ service: 'ERP.Portal', status: 'unconfigured' }));
+      return;
+    }
+
+    fetch(`${inventoryBaseUrl.replace(/\/$/, '')}/health`)
+      .then(async (upstream) => {
+        const body = await upstream.text();
+        response.writeHead(upstream.status, { 'content-type': 'application/json' });
+        response.end(body);
+      })
+      .catch(() => {
+        response.writeHead(502, { 'content-type': 'application/json' });
+        response.end(JSON.stringify({ service: 'ERP.Portal', status: 'upstream-unavailable' }));
+      });
     return;
   }
 
