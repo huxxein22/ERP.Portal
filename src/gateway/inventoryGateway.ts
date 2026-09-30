@@ -5,6 +5,7 @@ import {
   type InventoryGatewayError,
 } from "../contracts/inventory/availability";
 import { assertScopedQuery, type InventoryLocation, type InventoryScopedQuery, type InventoryWarehouse } from "../contracts/inventory/locations";
+import { assertValuationQuery, type InventoryValuationQuery, type InventoryValuationResponse } from "../contracts/inventory/valuation";
 export async function getAvailability(request: InventoryAvailabilityRequest, fetcher: typeof fetch = fetch): Promise<InventoryAvailabilityResponse> {
   assertScopedRequest(request);
   const response = await fetcher("/api/inventory/availability", {
@@ -17,8 +18,8 @@ export async function getAvailability(request: InventoryAvailabilityRequest, fet
   throw { kind, scope: request, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
 }
 
-async function getScoped<T>(path: string, query: InventoryScopedQuery, fetcher: typeof fetch): Promise<T> {
-  assertScopedQuery(query, path.endsWith("/locations"));
+async function getScoped<T>(path: string, query: InventoryScopedQuery, fetcher: typeof fetch, requireWarehouse = path.endsWith("/locations")): Promise<T> {
+  assertScopedQuery(query, requireWarehouse);
   const params = new URLSearchParams({
     companyId: String(query.companyId),
     branchId: String(query.branchId),
@@ -42,4 +43,24 @@ export function listWarehouses(query: InventoryScopedQuery, fetcher: typeof fetc
 
 export function listLocations(query: InventoryScopedQuery, fetcher: typeof fetch = fetch): Promise<{ items: InventoryLocation[] }> {
   return getScoped("/api/inventory/locations", query, fetcher);
+}
+
+export function getValuation(query: InventoryValuationQuery, fetcher: typeof fetch = fetch): Promise<InventoryValuationResponse> {
+  assertValuationQuery(query);
+  const params = new URLSearchParams({
+    companyId: String(query.companyId),
+    warehouseId: String(query.warehouseId),
+    correlationId: query.correlationId,
+  });
+  if (query.productCode) params.set("productCode", query.productCode);
+  if (query.variantCode) params.set("variantCode", query.variantCode);
+  return fetcher(`/api/inventory/valuation?${params.toString()}`, {
+    headers: { "x-correlation-id": query.correlationId },
+  }).then(async (response) => {
+    if (!response.ok) {
+      const kind: InventoryGatewayError["kind"] = response.status === 401 ? "unauthenticated" : response.status === 403 ? "permission-denied" : "transport";
+      throw { kind, scope: query, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
+    }
+    return response.json() as Promise<InventoryValuationResponse>;
+  });
 }
