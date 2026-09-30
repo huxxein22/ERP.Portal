@@ -33,6 +33,27 @@ describe("Inventory Portal contract boundary", () => {
     expect(received?.body).toContain('"warehouseId":11');
   });
 
+  it("preserves Product and Variant filters in the availability contract", async () => {
+    let received: RequestInit | undefined;
+    await getAvailability(
+      {
+        companyId: 1,
+        branchId: 7,
+        warehouseId: 11,
+        productCode: "SKU-1",
+        variantCode: "BLUE-M",
+        correlationId: "corr-stock-by-variant",
+      },
+      async (_input, init) => {
+        received = init;
+        return new Response(JSON.stringify({ items: [] }), { status: 200 });
+      },
+    );
+
+    expect(received?.body).toContain('"productCode":"SKU-1"');
+    expect(received?.body).toContain('"variantCode":"BLUE-M"');
+  });
+
   it("keeps permission denial distinct from transport failure", async () => {
     await expect(
       getAvailability(
