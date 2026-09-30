@@ -203,14 +203,14 @@ const server = createServer((request, response) => {
     return;
   }
 
-  if (request.method === 'POST' && request.url === '/api/inventory/import/preview') {
+  if (request.method === 'POST' && ['/api/inventory/import/preview', '/api/inventory/import/stage'].includes(request.url)) {
     readBody(request).then(async (body) => {
       let payload;
       try {
         payload = JSON.parse(body);
         const headerCorrelationId = request.headers['x-correlation-id'];
         if (!payload.correlationId && headerCorrelationId) payload.correlationId = headerCorrelationId;
-        assertImportPreviewRequest(payload);
+          assertImportPreviewRequest(payload, request.url.endsWith('/stage'));
       } catch (error) {
         response.writeHead(400, { 'content-type': 'application/json' });
         response.end(JSON.stringify({ error: error instanceof Error ? error.message : 'Invalid import preview' }));
@@ -223,7 +223,7 @@ const server = createServer((request, response) => {
         return;
       }
       try {
-        const upstream = await forwardInventoryWrite('/api/inventory/import/preview', { body, authorization: request.headers.authorization, correlationId }, inventoryBaseUrl);
+        const upstream = await forwardInventoryWrite(request.url, { body, authorization: request.headers.authorization, correlationId }, inventoryBaseUrl);
         await writeProxyResponse(response, upstream);
       } catch {
         response.writeHead(502, { 'content-type': 'application/json' });

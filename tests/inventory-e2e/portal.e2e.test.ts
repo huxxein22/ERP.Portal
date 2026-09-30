@@ -66,6 +66,13 @@ describe('ERP Portal Inventory E2E boundary', () => {
     });
     expect(invalidImport.status).toBe(400);
 
+    const invalidStage = await fetch(`${baseUrl}/api/inventory/import/stage`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{"companyId":1,"branchId":7,"warehouseId":11,"headers":["product_code"],"rows":[]}',
+    });
+    expect(invalidStage.status).toBe(400);
+
     const invalidCount = await fetch(`${baseUrl}/api/inventory/count?companyId=1&warehouseId=11&sessionId=&correlationId=e2e`);
     expect(invalidCount.status).toBe(400);
 

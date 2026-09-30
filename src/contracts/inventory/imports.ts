@@ -35,4 +35,9 @@ export type InventoryImportPreviewResponse = {
   stagedUnits: number;
 };
 
+export type InventoryImportStageRequest = InventoryImportPreviewRequest & {
+  reference: string;
+  idempotencyKey: string;
+};
+
 export { assertImportPreviewRequest } from './importsRuntime.mjs';
