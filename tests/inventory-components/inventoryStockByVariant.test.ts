@@ -7,6 +7,8 @@ describe('Inventory stock by variant component', () => {
     expect(html).toContain('/api/inventory/availability');
     expect(html).toContain('Product code');
     expect(html).toContain('Variant code');
+    expect(html).toContain('Reorder point');
+    expect(html).toContain('Below reorder point');
     expect(html).toContain('Access denied for this company/branch/warehouse scope.');
   });
 });
