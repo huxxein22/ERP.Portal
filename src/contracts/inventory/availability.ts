@@ -1,5 +1,5 @@
-export type InventoryScope = { companyId: number; branchId: number; warehouseId?: number };
-export type InventoryAvailabilityRequest = InventoryScope & { correlationId: string };
+export type InventoryScope = { companyId: number; branchId?: number; warehouseId?: number };
+export type InventoryAvailabilityRequest = InventoryScope & { branchId: number; correlationId: string };
 export type InventoryAvailabilityResponse = {
   items: Array<{
     productCode: string;
