@@ -39,4 +39,24 @@ grep -Eq '"incoming"[[:space:]]*:[[:space:]]*6' <<<"$forecast"
 grep -Eq '"outgoing"[[:space:]]*:[[:space:]]*4' <<<"$forecast"
 grep -Eq '"forecasted"[[:space:]]*:[[:space:]]*10' <<<"$forecast"
 
-echo "ERP.Portal to ERP.Inventory.Gateway smoke passed (health, authenticated forecast, and unauthenticated boundary)."
+import_preview="$(curl --fail --silent --show-error \
+  -X POST \
+  -H 'authorization: Bearer dev-inventory-token' \
+  -H 'content-type: application/json' \
+  -H 'x-correlation-id: portal-import-preview-smoke' \
+  --data '{"companyId":1,"branchId":7,"warehouseId":192,"headers":["product_code","variant_code","quantity"],"rows":[{"rowNumber":1,"locationId":192,"productCode":"SKU-1","variantCode":"BLUE-M","rawQuantity":"3"}],"correlationId":"portal-import-preview-smoke"}' \
+  "$portal_url/api/inventory/import/preview")"
+grep -Eq '"accepted"[[:space:]]*:[[:space:]]*true' <<<"$import_preview"
+grep -Eq '"action"[[:space:]]*:[[:space:]]*"would_stage"' <<<"$import_preview"
+
+import_stage="$(curl --fail --silent --show-error \
+  -X POST \
+  -H 'authorization: Bearer dev-inventory-token' \
+  -H 'content-type: application/json' \
+  -H 'x-correlation-id: portal-import-stage-smoke' \
+  --data '{"companyId":1,"branchId":7,"warehouseId":192,"headers":["product_code","variant_code","quantity"],"rows":[{"rowNumber":1,"locationId":192,"productCode":"SKU-1","variantCode":"BLUE-M","rawQuantity":"3"}],"reference":"portal-import-smoke","idempotencyKey":"portal-import-stage-smoke","correlationId":"portal-import-stage-smoke"}' \
+  "$portal_url/api/inventory/import/stage")"
+grep -Eq '"status"[[:space:]]*:[[:space:]]*"staged"' <<<"$import_stage"
+grep -Eq '"operationId"[[:space:]]*:[[:space:]]*"[^"]+"' <<<"$import_stage"
+
+echo "ERP.Portal to ERP.Inventory.Gateway smoke passed (health, authenticated forecast/import staging, and unauthenticated boundary)."
