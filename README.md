@@ -8,3 +8,7 @@ Set `INVENTORY_BASE_URL` to the authenticated HTTP Gateway endpoint (for
 example `ERP.Inventory.Gateway`), never directly to the Inventory gRPC
 service. The Gateway forwards the caller token and correlation ID to private
 gRPC and is the only backend boundary used by the Portal.
+
+Run `bash tools/inventory-gateway-smoke.sh` with the local Inventory gateway
+available to verify the Portal-to-Gateway health path and unauthenticated
+business boundary.
