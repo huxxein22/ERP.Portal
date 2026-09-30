@@ -59,6 +59,9 @@ describe('ERP Portal Inventory E2E boundary', () => {
     const unconfigured = await fetch(`${baseUrl}/api/inventory/valuation?companyId=1&warehouseId=11&correlationId=e2e`);
     expect(unconfigured.status).toBe(503);
 
+    const unconfiguredAudit = await fetch(`${baseUrl}/api/inventory/valuation-audit?companyId=1&warehouseId=11&correlationId=e2e`);
+    expect(unconfiguredAudit.status).toBe(503);
+
     const invalidImport = await fetch(`${baseUrl}/api/inventory/import/preview`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },

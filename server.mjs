@@ -279,6 +279,7 @@ const server = createServer((request, response) => {
     const correlationId = request.headers['x-correlation-id'] ?? url.searchParams.get('correlationId') ?? '';
     const requiresWarehouse = path.endsWith('/locations');
     const isValuation = path.endsWith('/valuation');
+    const isValuationAudit = path.endsWith('/valuation-audit');
     const isOperationTypes = path.endsWith('/operation-types');
     const isLedger = path.endsWith('/ledger');
     const isCount = path.endsWith('/count');
@@ -290,7 +291,7 @@ const server = createServer((request, response) => {
     try {
       if (isBranchAvailability || isBranchValuation) {
         assertBranchQuery({ companyId, branchId, productCode: url.searchParams.get('productCode') ?? undefined, variantCode: url.searchParams.get('variantCode') ?? undefined, correlationId });
-      } else if (isValuation) {
+      } else if (isValuation || isValuationAudit) {
         assertValuationQuery({ companyId, warehouseId: Number(warehouseIdValue), correlationId });
       } else if (isOperationTypes) {
         assertOperationTypesQuery({ companyId, correlationId });

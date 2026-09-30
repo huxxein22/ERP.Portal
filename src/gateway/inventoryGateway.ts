@@ -5,7 +5,7 @@ import {
   type InventoryGatewayError,
 } from "../contracts/inventory/availability";
 import { assertScopedQuery, type InventoryLocation, type InventoryScopedQuery, type InventoryWarehouse } from "../contracts/inventory/locations";
-import { assertValuationQuery, type InventoryValuationQuery, type InventoryValuationResponse } from "../contracts/inventory/valuation";
+import { assertValuationQuery, type InventoryValuationAuditResponse, type InventoryValuationQuery, type InventoryValuationResponse } from "../contracts/inventory/valuation";
 import { assertOperationTypesQuery, assertStockLedgerQuery, type InventoryOperationType, type InventoryOperationTypesQuery, type InventoryStockLedgerLine, type InventoryStockLedgerQuery } from "../contracts/inventory/operations";
 import { assertImportPreviewRequest, type InventoryImportPreviewRequest, type InventoryImportPreviewResponse } from "../contracts/inventory/imports";
 import { assertCountQuery, type InventoryCountQuery, type InventoryCountResponse } from "../contracts/inventory/counts";
@@ -68,6 +68,26 @@ export function getValuation(query: InventoryValuationQuery, fetcher: typeof fet
       throw { kind, scope: query, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
     }
     return response.json() as Promise<InventoryValuationResponse>;
+  });
+}
+
+export function getValuationAudit(query: InventoryValuationQuery, fetcher: typeof fetch = fetch): Promise<InventoryValuationAuditResponse> {
+  assertValuationQuery(query);
+  const params = new URLSearchParams({
+    companyId: String(query.companyId),
+    warehouseId: String(query.warehouseId),
+    correlationId: query.correlationId,
+  });
+  if (query.productCode) params.set("productCode", query.productCode);
+  if (query.variantCode) params.set("variantCode", query.variantCode);
+  return fetcher(`/api/inventory/valuation-audit?${params.toString()}`, {
+    headers: { "x-correlation-id": query.correlationId },
+  }).then(async (response) => {
+    if (!response.ok) {
+      const kind: InventoryGatewayError["kind"] = response.status === 401 ? "unauthenticated" : response.status === 403 ? "permission-denied" : "transport";
+      throw { kind, scope: query, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
+    }
+    return response.json() as Promise<InventoryValuationAuditResponse>;
   });
 }
 

@@ -31,4 +31,22 @@ export type InventoryValuationResponse = {
   financialsVisible: boolean;
 };
 
+export type InventoryValuationAuditItem = {
+  layerId: string;
+  movementId: string;
+  productCode: string;
+  variantCode: string;
+  movementType: string;
+  valueDelta?: number;
+  classification: string;
+  action: string;
+  reason: string;
+  accountingEligible: boolean;
+};
+
+export type InventoryValuationAuditResponse = {
+  items: InventoryValuationAuditItem[];
+  financialsVisible: boolean;
+};
+
 export { assertValuationQuery } from "./valuationRuntime.mjs";

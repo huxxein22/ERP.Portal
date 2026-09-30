@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { assertScopedRequest } from "../../src/contracts/inventory/availability";
 import { getAvailability } from "../../src/gateway/inventoryGateway";
 import { forwardInventoryAvailability } from "../../src/gateway/inventoryProxy";
-import { getCount, listDeliveryMethods, listPutawayRules, listRoutes, getStockLedger, getValuation, listLocations, listOperationTypes, listWarehouses } from "../../src/gateway/inventoryGateway";
+import { getCount, listDeliveryMethods, listPutawayRules, listRoutes, getStockLedger, getValuation, getValuationAudit, listLocations, listOperationTypes, listWarehouses } from "../../src/gateway/inventoryGateway";
 import { previewStockImport } from "../../src/gateway/inventoryGateway";
 import { assertBranchQuery } from "../../src/contracts/inventory/branchBalances";
 import { getBranchAvailability, getBranchValuation } from "../../src/gateway/inventoryGateway";
@@ -123,6 +123,22 @@ describe("Inventory Portal contract boundary", () => {
     expect(requestedUrl).toContain("warehouseId=11");
     expect(requestedUrl).toContain("productCode=SKU-1");
     expect(requestedUrl).toContain("variantCode=BLUE-M");
+  });
+
+  it("forwards the read-only valuation audit contract and preserves masking", async () => {
+    let requestedUrl = "";
+    const response = await getValuationAudit(
+      { companyId: 1, warehouseId: 11, correlationId: "corr-valuation-audit" },
+      async (input) => {
+        requestedUrl = String(input);
+        return new Response(JSON.stringify({ items: [], financialsVisible: false }), { status: 200 });
+      },
+    );
+
+    expect(response.financialsVisible).toBe(false);
+    expect(requestedUrl).toContain("/api/inventory/valuation-audit?");
+    expect(requestedUrl).toContain("warehouseId=11");
+    expect(requestedUrl).toContain("correlationId=corr-valuation-audit");
   });
 
   it("preserves company scope for operation types and warehouse/date scope for the ledger", async () => {
