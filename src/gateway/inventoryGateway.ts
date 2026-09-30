@@ -4,6 +4,7 @@ import {
   type InventoryAvailabilityResponse,
   type InventoryGatewayError,
 } from "../contracts/inventory/availability";
+import { assertScopedQuery, type InventoryLocation, type InventoryScopedQuery, type InventoryWarehouse } from "../contracts/inventory/locations";
 export async function getAvailability(request: InventoryAvailabilityRequest, fetcher: typeof fetch = fetch): Promise<InventoryAvailabilityResponse> {
   assertScopedRequest(request);
   const response = await fetcher("/api/inventory/availability", {
@@ -14,4 +15,31 @@ export async function getAvailability(request: InventoryAvailabilityRequest, fet
   if (response.ok) return response.json() as Promise<InventoryAvailabilityResponse>;
   const kind: InventoryGatewayError["kind"] = response.status === 401 ? "unauthenticated" : response.status === 403 ? "permission-denied" : "transport";
   throw { kind, scope: request, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
+}
+
+async function getScoped<T>(path: string, query: InventoryScopedQuery, fetcher: typeof fetch): Promise<T> {
+  assertScopedQuery(query, path.endsWith("/locations"));
+  const params = new URLSearchParams({
+    companyId: String(query.companyId),
+    branchId: String(query.branchId),
+    correlationId: query.correlationId,
+  });
+  if (query.warehouseId !== undefined) params.set("warehouseId", String(query.warehouseId));
+
+  const response = await fetcher(`${path}?${params.toString()}`, {
+    headers: { "x-correlation-id": query.correlationId },
+  });
+  if (!response.ok) {
+    const kind: InventoryGatewayError["kind"] = response.status === 401 ? "unauthenticated" : response.status === 403 ? "permission-denied" : "transport";
+    throw { kind, scope: query, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
+  }
+  return response.json() as Promise<T>;
+}
+
+export function listWarehouses(query: InventoryScopedQuery, fetcher: typeof fetch = fetch): Promise<{ items: InventoryWarehouse[] }> {
+  return getScoped("/api/inventory/warehouses", query, fetcher);
+}
+
+export function listLocations(query: InventoryScopedQuery, fetcher: typeof fetch = fetch): Promise<{ items: InventoryLocation[] }> {
+  return getScoped("/api/inventory/locations", query, fetcher);
 }

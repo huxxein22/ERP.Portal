@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { assertScopedRequest } from './src/contracts/inventory/availabilityRuntime.mjs';
-import { forwardInventoryAvailability } from './src/gateway/inventoryProxy.mjs';
+import { forwardInventoryAvailability, forwardInventoryRead } from './src/gateway/inventoryProxy.mjs';
 
 const port = Number(process.env.PORT ?? 3000);
 const inventoryBaseUrl = process.env.INVENTORY_BASE_URL;
@@ -94,6 +94,37 @@ const server = createServer((request, response) => {
       .catch(() => {
         response.writeHead(400, { 'content-type': 'application/json' });
         response.end(JSON.stringify({ error: 'Invalid request body' }));
+      });
+    return;
+  }
+
+  if (request.method === 'GET' && (request.url?.startsWith('/api/inventory/warehouses') || request.url?.startsWith('/api/inventory/locations'))) {
+    const url = new URL(request.url, `http://${request.headers.host ?? 'localhost'}`);
+    const path = url.pathname;
+    const companyId = Number(url.searchParams.get('companyId'));
+    const branchId = Number(url.searchParams.get('branchId'));
+    const warehouseIdValue = url.searchParams.get('warehouseId');
+    const correlationId = request.headers['x-correlation-id'] ?? url.searchParams.get('correlationId') ?? '';
+    const requiresWarehouse = path.endsWith('/locations');
+    try {
+      assertScopedRequest({ companyId, branchId, warehouseId: warehouseIdValue ? Number(warehouseIdValue) : undefined, correlationId });
+      if (requiresWarehouse && (!warehouseIdValue || Number(warehouseIdValue) <= 0)) throw new Error('warehouseId is required');
+    } catch (error) {
+      response.writeHead(400, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({ error: error instanceof Error ? error.message : 'Invalid scope' }));
+      return;
+    }
+
+    if (!inventoryBaseUrl) {
+      response.writeHead(503, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({ service: 'ERP.Portal', status: 'inventory-gateway-unconfigured' }));
+      return;
+    }
+    forwardInventoryRead(path, url.search, { authorization: request.headers.authorization, correlationId }, inventoryBaseUrl)
+      .then((upstream) => writeProxyResponse(response, upstream))
+      .catch(() => {
+        response.writeHead(502, { 'content-type': 'application/json' });
+        response.end(JSON.stringify({ service: 'ERP.Portal', status: 'inventory-gateway-unavailable' }));
       });
     return;
   }
