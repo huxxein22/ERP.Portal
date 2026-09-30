@@ -18,6 +18,7 @@ import { renderInventoryConfiguration } from './src/components/inventory/invento
 import { renderInventoryBranchBalances } from './src/components/inventory/inventoryBranchBalances.mjs';
 import { renderInventoryLocations } from './src/components/inventory/inventoryLocations.mjs';
 import { renderInventoryStockByVariant } from './src/components/inventory/inventoryStockByVariant.mjs';
+import { renderInventoryConfigurationWrite } from './src/components/inventory/inventoryConfigurationWrite.mjs';
 import { assertBranchQuery } from './src/contracts/inventory/branchBalancesRuntime.mjs';
 
 const port = Number(process.env.PORT ?? 3000);
@@ -102,6 +103,12 @@ const server = createServer((request, response) => {
   if (request.method === 'GET' && request.url === '/inventory/stock-by-variant') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     response.end(renderInventoryStockByVariant());
+    return;
+  }
+
+  if (request.method === 'GET' && request.url === '/inventory/configuration/write') {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    response.end(renderInventoryConfigurationWrite());
     return;
   }
 
