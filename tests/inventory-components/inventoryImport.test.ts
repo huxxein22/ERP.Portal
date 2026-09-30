@@ -9,6 +9,7 @@ describe('Inventory Import component', () => {
     expect(html).toContain('/api/inventory/import/stage');
     expect(html).toContain('Stage reviewed import');
     expect(html).toContain('Duplicate rows:');
+    expect(html).toContain('Catalog identity failures are shown per row and block staging.');
     expect(html).not.toContain('/api/inventory/import/apply');
   });
 });
