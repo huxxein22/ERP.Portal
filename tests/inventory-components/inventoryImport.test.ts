@@ -14,6 +14,11 @@ describe('Inventory Import component', () => {
     expect(html).toContain('Catalog product ID');
     expect(html).toContain('Catalog variant ID');
     expect(html).toContain('Catalog version');
+    expect(html).toContain('Incoming unit cost');
+    expect(html).toContain('Before cost');
+    expect(html).toContain('After cost');
+    expect(html).toContain('Cost delta');
+    expect(html).toContain('Cost status');
     expect(html).not.toContain('/api/inventory/import/apply');
   });
 
