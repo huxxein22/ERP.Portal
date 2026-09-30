@@ -30,4 +30,13 @@ if [[ "$status" != "401" ]]; then
   exit 1
 fi
 
-echo "ERP.Portal to ERP.Inventory.Gateway smoke passed (health and unauthenticated boundary)."
+warehouse_id="${INVENTORY_WAREHOUSE_ID:-192}"
+forecast="$(curl --fail --silent --show-error \
+  -H 'authorization: Bearer dev-inventory-token' \
+  -H 'x-correlation-id: portal-forecast-real-smoke' \
+  "$portal_url/api/inventory/forecast?companyId=1&branchId=7&warehouseId=${warehouse_id}&productCode=SKU-1&variantCode=BLUE-M&correlationId=portal-forecast-real-smoke")"
+grep -Eq '"incoming"[[:space:]]*:[[:space:]]*6' <<<"$forecast"
+grep -Eq '"outgoing"[[:space:]]*:[[:space:]]*4' <<<"$forecast"
+grep -Eq '"forecasted"[[:space:]]*:[[:space:]]*10' <<<"$forecast"
+
+echo "ERP.Portal to ERP.Inventory.Gateway smoke passed (health, authenticated forecast, and unauthenticated boundary)."
