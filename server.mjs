@@ -22,6 +22,7 @@ import { renderInventoryConfigurationWrite } from './src/components/inventory/in
 import { renderInventoryPutawayWrite } from './src/components/inventory/inventoryPutawayWrite.mjs';
 import { renderInventoryRuleWrite } from './src/components/inventory/inventoryRuleWrite.mjs';
 import { renderInventoryMoves } from './src/components/inventory/inventoryMoves.mjs';
+import { renderInventoryAlerts } from './src/components/inventory/inventoryAlerts.mjs';
 import { assertBranchQuery } from './src/contracts/inventory/branchBalancesRuntime.mjs';
 
 const port = Number(process.env.PORT ?? 3000);
@@ -106,6 +107,12 @@ const server = createServer((request, response) => {
   if (request.method === 'GET' && request.url === '/inventory/stock-by-variant') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     response.end(renderInventoryStockByVariant());
+    return;
+  }
+
+  if (request.method === 'GET' && request.url === '/inventory/alerts') {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    response.end(renderInventoryAlerts());
     return;
   }
 
