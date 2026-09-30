@@ -45,7 +45,7 @@ describe('ERP Portal Inventory E2E boundary', () => {
   });
 
   it('serves every extracted Inventory screen', async () => {
-    for (const path of ['/inventory', '/inventory/operations', '/inventory/valuation', '/inventory/import', '/inventory/count', '/inventory/putaway', '/inventory/putaway/write', '/inventory/moves', '/inventory/configuration', '/inventory/configuration/write', '/inventory/rules/write', '/inventory/branch-balances', '/inventory/locations', '/inventory/stock-by-variant', '/inventory/alerts']) {
+    for (const path of ['/inventory', '/inventory/operations', '/inventory/valuation', '/inventory/import', '/inventory/count', '/inventory/putaway', '/inventory/putaway/write', '/inventory/moves', '/inventory/configuration', '/inventory/configuration/write', '/inventory/rules/write', '/inventory/branch-balances', '/inventory/locations', '/inventory/stock-by-variant', '/inventory/alerts', '/inventory/forecast']) {
       const response = await fetch(`${baseUrl}${path}`);
       expect(response.status, path).toBe(200);
       expect(response.headers.get('content-type')).toContain('text/html');
@@ -61,6 +61,9 @@ describe('ERP Portal Inventory E2E boundary', () => {
 
     const unconfiguredAudit = await fetch(`${baseUrl}/api/inventory/valuation-audit?companyId=1&warehouseId=11&correlationId=e2e`);
     expect(unconfiguredAudit.status).toBe(503);
+
+    const unconfiguredForecast = await fetch(`${baseUrl}/api/inventory/forecast?companyId=1&branchId=7&warehouseId=11&productCode=SKU-1&variantCode=BLUE-M&correlationId=e2e`);
+    expect(unconfiguredForecast.status).toBe(503);
 
     const invalidImport = await fetch(`${baseUrl}/api/inventory/import/preview`, {
       method: 'POST',

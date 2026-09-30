@@ -57,6 +57,11 @@ describe('ERP Portal Inventory Gateway forwarding E2E', () => {
         response.end(JSON.stringify({ items: [{ productCode: 'SKU-1', available: 4 }] }));
         return;
       }
+      if (request.url?.startsWith('/api/inventory/forecast')) {
+        response.writeHead(200, { 'content-type': 'application/json' });
+        response.end(JSON.stringify({ items: [{ productCode: 'SKU-1', variantCode: 'BLUE-M', forecasted: 5 }] }));
+        return;
+      }
       if (request.method === 'POST' && request.url === '/api/inventory/stock/receive') {
         response.writeHead(200, { 'content-type': 'application/json' });
         response.end(JSON.stringify({ operationId: 'e2e-operation', status: 'committed' }));
@@ -121,5 +126,19 @@ describe('ERP Portal Inventory Gateway forwarding E2E', () => {
     expect(JSON.parse(forwarded.body)).toEqual(JSON.parse(body));
     expect(forwarded.authorization).toBe('Bearer e2e-token');
     expect(forwarded.correlation).toBe('portal-write-correlation');
+  });
+
+  it('forwards forecast scope and security headers to the Gateway', async () => {
+    const response = await fetch(
+      `${portalUrl}/api/inventory/forecast?companyId=1&branchId=7&warehouseId=11&productCode=SKU-1&variantCode=BLUE-M&correlationId=portal-forecast`,
+      { headers: { authorization: 'Bearer forecast-token', 'x-correlation-id': 'portal-forecast-header' } },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ items: [{ productCode: 'SKU-1', variantCode: 'BLUE-M', forecasted: 5 }] });
+    expect(forwarded.path).toContain('/api/inventory/forecast?');
+    expect(forwarded.path).toContain('warehouseId=11');
+    expect(forwarded.authorization).toBe('Bearer forecast-token');
+    expect(forwarded.correlation).toBe('portal-forecast-header');
   });
 });
