@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { assertScopedRequest } from "../../src/contracts/inventory/availability";
 import { getAvailability } from "../../src/gateway/inventoryGateway";
 import { forwardInventoryAvailability } from "../../src/gateway/inventoryProxy";
-import { getValuation, listLocations, listWarehouses } from "../../src/gateway/inventoryGateway";
+import { getStockLedger, getValuation, listLocations, listOperationTypes, listWarehouses } from "../../src/gateway/inventoryGateway";
 describe("Inventory Portal contract boundary", () => {
   it("requires correlation and scope inputs", () => {
     expect(() => assertScopedRequest({ companyId: 1, branchId: 7, correlationId: "" })).toThrow("correlationId");
@@ -99,5 +99,24 @@ describe("Inventory Portal contract boundary", () => {
     expect(requestedUrl).toContain("warehouseId=11");
     expect(requestedUrl).toContain("productCode=SKU-1");
     expect(requestedUrl).toContain("variantCode=BLUE-M");
+  });
+
+  it("preserves company scope for operation types and warehouse/date scope for the ledger", async () => {
+    let operationUrl = "";
+    await listOperationTypes({ companyId: 1, correlationId: "corr-10" }, async (input) => {
+      operationUrl = String(input);
+      return new Response(JSON.stringify({ items: [] }), { status: 200 });
+    });
+    expect(operationUrl).toContain("companyId=1");
+    expect(operationUrl).toContain("correlationId=corr-10");
+
+    let ledgerUrl = "";
+    await getStockLedger({ companyId: 1, warehouseId: 11, fromDate: "2026-01-01", toDate: "2026-01-31", correlationId: "corr-11" }, async (input) => {
+      ledgerUrl = String(input);
+      return new Response(JSON.stringify({ lines: [] }), { status: 200 });
+    });
+    expect(ledgerUrl).toContain("warehouseId=11");
+    expect(ledgerUrl).toContain("fromDate=2026-01-01");
+    expect(ledgerUrl).toContain("toDate=2026-01-31");
   });
 });

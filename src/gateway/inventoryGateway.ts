@@ -6,6 +6,7 @@ import {
 } from "../contracts/inventory/availability";
 import { assertScopedQuery, type InventoryLocation, type InventoryScopedQuery, type InventoryWarehouse } from "../contracts/inventory/locations";
 import { assertValuationQuery, type InventoryValuationQuery, type InventoryValuationResponse } from "../contracts/inventory/valuation";
+import { assertOperationTypesQuery, assertStockLedgerQuery, type InventoryOperationType, type InventoryOperationTypesQuery, type InventoryStockLedgerLine, type InventoryStockLedgerQuery } from "../contracts/inventory/operations";
 export async function getAvailability(request: InventoryAvailabilityRequest, fetcher: typeof fetch = fetch): Promise<InventoryAvailabilityResponse> {
   assertScopedRequest(request);
   const response = await fetcher("/api/inventory/availability", {
@@ -62,5 +63,31 @@ export function getValuation(query: InventoryValuationQuery, fetcher: typeof fet
       throw { kind, scope: query, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
     }
     return response.json() as Promise<InventoryValuationResponse>;
+  });
+}
+
+export function listOperationTypes(query: InventoryOperationTypesQuery, fetcher: typeof fetch = fetch): Promise<{ items: InventoryOperationType[] }> {
+  assertOperationTypesQuery(query);
+  const params = new URLSearchParams({ companyId: String(query.companyId), correlationId: query.correlationId });
+  return fetcher(`/api/inventory/operation-types?${params.toString()}`, { headers: { "x-correlation-id": query.correlationId } }).then(async (response) => {
+    if (!response.ok) {
+      const kind: InventoryGatewayError["kind"] = response.status === 401 ? "unauthenticated" : response.status === 403 ? "permission-denied" : "transport";
+      throw { kind, scope: { companyId: query.companyId }, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
+    }
+    return response.json() as Promise<{ items: InventoryOperationType[] }>;
+  });
+}
+
+export function getStockLedger(query: InventoryStockLedgerQuery, fetcher: typeof fetch = fetch): Promise<{ lines: InventoryStockLedgerLine[] }> {
+  assertStockLedgerQuery(query);
+  const params = new URLSearchParams({ companyId: String(query.companyId), warehouseId: String(query.warehouseId), correlationId: query.correlationId });
+  if (query.fromDate) params.set("fromDate", query.fromDate);
+  if (query.toDate) params.set("toDate", query.toDate);
+  return fetcher(`/api/inventory/ledger?${params.toString()}`, { headers: { "x-correlation-id": query.correlationId } }).then(async (response) => {
+    if (!response.ok) {
+      const kind: InventoryGatewayError["kind"] = response.status === 401 ? "unauthenticated" : response.status === 403 ? "permission-denied" : "transport";
+      throw { kind, scope: query, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
+    }
+    return response.json() as Promise<{ lines: InventoryStockLedgerLine[] }>;
   });
 }
