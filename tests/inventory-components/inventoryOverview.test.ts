@@ -8,6 +8,8 @@ describe('Inventory Overview component', () => {
     expect(html).toContain('name="branchId"');
     expect(html).toContain('name="warehouseId"');
     expect(html).toContain("fetch('/api/inventory/availability'");
+    expect(html).toContain('Reorder point:');
+    expect(html).toContain('Below reorder point');
     expect(html).toContain('Access denied for this company/branch/warehouse scope.');
     expect(html).toContain('Inventory gateway is unavailable. Try again later.');
   });

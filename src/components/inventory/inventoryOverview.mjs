@@ -38,7 +38,7 @@ form.addEventListener('submit',async(event)=>{
   if(!response.ok){setState('Inventory gateway is unavailable. Try again later.','transport');return;}
   const body=await response.json(); const rows=Array.isArray(body.items)?body.items:[];
   if(!rows.length){setState('No availability rows returned.');return;}
-  setState('Availability loaded.'); items.innerHTML=rows.map((row)=>'<article class="card"><strong>'+escape(row.productCode)+' / '+escape(row.variantCode)+'</strong><p>On hand: '+escape(row.onHand)+'</p><p>Available: '+escape(row.available ?? (Number(row.onHand)-Number(row.reserved)))+'</p></article>').join('');
+  setState('Availability loaded.'); items.innerHTML=rows.map((row)=>'<article class="card"><strong>'+escape(row.productCode)+' / '+escape(row.variantCode)+'</strong><p>On hand: '+escape(row.onHand)+'</p><p>Available: '+escape(row.available ?? (Number(row.onHand)-Number(row.reserved)))+'</p><p>Reorder point: '+escape(row.reorderPoint ?? 0)+'</p>'+(row.belowReorderPoint?'<p class="error">Below reorder point</p>':'')+'</article>').join('');
  } catch { setState('Inventory gateway is unavailable. Try again later.','transport'); }
 });
 </script></main></body></html>`;
