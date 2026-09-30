@@ -71,5 +71,12 @@ describe('ERP Portal Inventory E2E boundary', () => {
 
     const invalidBranch = await fetch(`${baseUrl}/api/inventory/branch-availability?companyId=1&branchId=0&correlationId=e2e`);
     expect(invalidBranch.status).toBe(400);
+
+    const unconfiguredWrite = await fetch(`${baseUrl}/api/inventory/routes`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{"companyId":1,"code":"route-1","name":"Route 1"}',
+    });
+    expect(unconfiguredWrite.status).toBe(503);
   });
 });

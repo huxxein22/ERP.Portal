@@ -208,6 +208,33 @@ const server = createServer((request, response) => {
     return;
   }
 
+  if (request.method === 'POST' && ['/api/inventory/putaway/rules', '/api/inventory/routes', '/api/inventory/rules', '/api/inventory/delivery-methods'].includes(request.url)) {
+    readBody(request).then(async (body) => {
+      if (!body.trim()) {
+        response.writeHead(400, { 'content-type': 'application/json' });
+        response.end(JSON.stringify({ error: 'A JSON request body is required' }));
+        return;
+      }
+      const correlationId = request.headers['x-correlation-id'] ?? randomUUID();
+      if (!inventoryBaseUrl) {
+        response.writeHead(503, { 'content-type': 'application/json' });
+        response.end(JSON.stringify({ service: 'ERP.Portal', status: 'inventory-gateway-unconfigured' }));
+        return;
+      }
+      try {
+        const upstream = await forwardInventoryWrite(request.url, { body, authorization: request.headers.authorization, correlationId }, inventoryBaseUrl);
+        await writeProxyResponse(response, upstream);
+      } catch {
+        response.writeHead(502, { 'content-type': 'application/json' });
+        response.end(JSON.stringify({ service: 'ERP.Portal', status: 'inventory-gateway-unavailable' }));
+      }
+    }).catch(() => {
+      response.writeHead(400, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({ error: 'Invalid request body' }));
+    });
+    return;
+  }
+
   if (request.method === 'GET' && (request.url?.startsWith('/api/inventory/warehouses') || request.url?.startsWith('/api/inventory/locations') || request.url?.startsWith('/api/inventory/valuation') || request.url?.startsWith('/api/inventory/operation-types') || request.url?.startsWith('/api/inventory/ledger') || request.url?.startsWith('/api/inventory/count') || request.url?.startsWith('/api/inventory/putaway/rules') || request.url?.startsWith('/api/inventory/routes') || request.url?.startsWith('/api/inventory/delivery-methods') || request.url?.startsWith('/api/inventory/branch-availability') || request.url?.startsWith('/api/inventory/branch-valuation'))) {
     const url = new URL(request.url, `http://${request.headers.host ?? 'localhost'}`);
     const path = url.pathname;
