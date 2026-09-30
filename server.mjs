@@ -270,7 +270,7 @@ const server = createServer((request, response) => {
     return;
   }
 
-  if (request.method === 'GET' && (request.url?.startsWith('/api/inventory/warehouses') || request.url?.startsWith('/api/inventory/locations') || request.url?.startsWith('/api/inventory/valuation') || request.url?.startsWith('/api/inventory/operation-types') || request.url?.startsWith('/api/inventory/ledger') || request.url?.startsWith('/api/inventory/count') || request.url?.startsWith('/api/inventory/putaway/rules') || request.url?.startsWith('/api/inventory/routes') || request.url?.startsWith('/api/inventory/delivery-methods') || request.url?.startsWith('/api/inventory/branch-availability') || request.url?.startsWith('/api/inventory/branch-valuation'))) {
+  if (request.method === 'GET' && (request.url?.startsWith('/api/inventory/warehouses') || request.url?.startsWith('/api/inventory/locations') || request.url?.startsWith('/api/inventory/valuation') || request.url?.startsWith('/api/inventory/operation-types') || request.url?.startsWith('/api/inventory/ledger') || request.url?.startsWith('/api/inventory/count') || request.url?.startsWith('/api/inventory/putaway/rules') || request.url?.startsWith('/api/inventory/routes') || request.url?.startsWith('/api/inventory/delivery-methods') || request.url?.startsWith('/api/inventory/branch-availability') || request.url?.startsWith('/api/inventory/branch-valuation') || request.url?.startsWith('/api/inventory/forecast'))) {
     const url = new URL(request.url, `http://${request.headers.host ?? 'localhost'}`);
     const path = url.pathname;
     const companyId = Number(url.searchParams.get('companyId'));
@@ -288,6 +288,7 @@ const server = createServer((request, response) => {
     const isDeliveryMethods = path.endsWith('/delivery-methods');
     const isBranchAvailability = path.endsWith('/branch-availability');
     const isBranchValuation = path.endsWith('/branch-valuation');
+    const isForecast = path.endsWith('/forecast');
     try {
       if (isBranchAvailability || isBranchValuation) {
         assertBranchQuery({ companyId, branchId, productCode: url.searchParams.get('productCode') ?? undefined, variantCode: url.searchParams.get('variantCode') ?? undefined, correlationId });
@@ -303,6 +304,11 @@ const server = createServer((request, response) => {
         assertPutawayQuery({ companyId, branchId, correlationId });
       } else if (isRoutes || isDeliveryMethods) {
         assertCompanyQuery({ companyId, correlationId });
+      } else if (isForecast) {
+        assertScopedRequest({ companyId, branchId, warehouseId: Number(warehouseIdValue), correlationId });
+        if (!warehouseIdValue || Number(warehouseIdValue) <= 0) throw new Error('warehouseId is required');
+        if (!url.searchParams.get('productCode')) throw new Error('productCode is required');
+        if (!url.searchParams.get('variantCode')) throw new Error('variantCode is required');
       } else {
         assertScopedRequest({ companyId, branchId, warehouseId: warehouseIdValue ? Number(warehouseIdValue) : undefined, correlationId });
         if (requiresWarehouse && (!warehouseIdValue || Number(warehouseIdValue) <= 0)) throw new Error('warehouseId is required');

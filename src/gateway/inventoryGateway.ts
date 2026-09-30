@@ -12,6 +12,7 @@ import { assertCountQuery, type InventoryCountQuery, type InventoryCountResponse
 import { assertPutawayQuery, type InventoryPutawayQuery, type InventoryPutawayRule } from "../contracts/inventory/putaway";
 import { assertCompanyQuery, type InventoryCompanyQuery, type InventoryDeliveryMethod, type InventoryRoute, type InventoryRule } from "../contracts/inventory/configuration";
 import { assertBranchQuery, type InventoryBranchAvailabilityResponse, type InventoryBranchQuery, type InventoryBranchValuationResponse } from "../contracts/inventory/branchBalances";
+import { assertForecastQuery, type InventoryForecastQuery, type InventoryForecastResponse } from "../contracts/inventory/forecast";
 export async function getAvailability(request: InventoryAvailabilityRequest, fetcher: typeof fetch = fetch): Promise<InventoryAvailabilityResponse> {
   assertScopedRequest(request);
   const response = await fetcher("/api/inventory/availability", {
@@ -22,6 +23,25 @@ export async function getAvailability(request: InventoryAvailabilityRequest, fet
   if (response.ok) return response.json() as Promise<InventoryAvailabilityResponse>;
   const kind: InventoryGatewayError["kind"] = response.status === 401 ? "unauthenticated" : response.status === 403 ? "permission-denied" : "transport";
   throw { kind, scope: request, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
+}
+
+export function getForecast(query: InventoryForecastQuery, fetcher: typeof fetch = fetch): Promise<InventoryForecastResponse> {
+  assertForecastQuery(query);
+  const params = new URLSearchParams({
+    companyId: String(query.companyId),
+    branchId: String(query.branchId),
+    warehouseId: String(query.warehouseId),
+    productCode: query.productCode,
+    variantCode: query.variantCode,
+    correlationId: query.correlationId,
+  });
+  return fetcher(`/api/inventory/forecast?${params.toString()}`, { headers: { "x-correlation-id": query.correlationId } }).then(async (response) => {
+    if (!response.ok) {
+      const kind: InventoryGatewayError["kind"] = response.status === 401 ? "unauthenticated" : response.status === 403 ? "permission-denied" : "transport";
+      throw { kind, scope: query, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
+    }
+    return response.json() as Promise<InventoryForecastResponse>;
+  });
 }
 
 async function getScoped<T>(path: string, query: InventoryScopedQuery, fetcher: typeof fetch, requireWarehouse = path.endsWith("/locations")): Promise<T> {
