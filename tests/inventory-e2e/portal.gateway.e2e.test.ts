@@ -8,7 +8,7 @@ let portal: ChildProcessWithoutNullStreams;
 let portalUrl: string;
 let gateway: Server;
 let gatewayUrl: string;
-let forwarded: { path: string; authorization?: string; correlation?: string };
+let forwarded: { method: string; path: string; body: string; authorization?: string; correlation?: string };
 
 async function freePort(): Promise<number> {
   const probe = createNetServer();
@@ -34,14 +34,19 @@ async function waitForHealth(url: string): Promise<void> {
 
 describe('ERP Portal Inventory Gateway forwarding E2E', () => {
   beforeAll(async () => {
-    forwarded = { path: '' };
+    forwarded = { method: '', path: '', body: '' };
     const gatewayPort = await freePort();
     gateway = createHttpServer((request, response) => {
-      forwarded = {
-        path: request.url ?? '',
-        authorization: request.headers.authorization,
-        correlation: request.headers['x-correlation-id'],
-      };
+      const chunks: Buffer[] = [];
+      request.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      request.on('end', () => {
+        forwarded = {
+          method: request.method ?? '',
+          path: request.url ?? '',
+          body: Buffer.concat(chunks).toString('utf8'),
+          authorization: request.headers.authorization,
+          correlation: request.headers['x-correlation-id'],
+        };
       if (request.url === '/health') {
         response.writeHead(200, { 'content-type': 'application/json' });
         response.end(JSON.stringify({ service: 'ERP.Inventory.Gateway', status: 'ok' }));
@@ -52,8 +57,14 @@ describe('ERP Portal Inventory Gateway forwarding E2E', () => {
         response.end(JSON.stringify({ items: [{ productCode: 'SKU-1', available: 4 }] }));
         return;
       }
+      if (request.method === 'POST' && request.url === '/api/inventory/stock/receive') {
+        response.writeHead(200, { 'content-type': 'application/json' });
+        response.end(JSON.stringify({ operationId: 'e2e-operation', status: 'committed' }));
+        return;
+      }
       response.writeHead(404);
       response.end();
+      });
     });
     gateway.listen(gatewayPort, '127.0.0.1');
     await once(gateway, 'listening');
@@ -87,5 +98,28 @@ describe('ERP Portal Inventory Gateway forwarding E2E', () => {
     expect(forwarded.path).toContain('branchId=7');
     expect(forwarded.authorization).toBe('Bearer e2e-token');
     expect(forwarded.correlation).toBe('portal-header-correlation');
+  });
+
+  it('forwards scoped writes with the original JSON body and security headers', async () => {
+    const body = JSON.stringify({
+      companyId: 1,
+      warehouseId: 11,
+      productCode: 'SKU-1',
+      variantCode: 'BLUE-M',
+      quantity: 2,
+      idempotencyKey: 'portal-write-e2e',
+    });
+    const response = await fetch(`${portalUrl}/api/inventory/stock/receive`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer e2e-token', 'x-correlation-id': 'portal-write-correlation', 'content-type': 'application/json' },
+      body,
+    });
+
+    expect(response.status).toBe(200);
+    expect(forwarded.method).toBe('POST');
+    expect(forwarded.path).toBe('/api/inventory/stock/receive');
+    expect(JSON.parse(forwarded.body)).toEqual(JSON.parse(body));
+    expect(forwarded.authorization).toBe('Bearer e2e-token');
+    expect(forwarded.correlation).toBe('portal-write-correlation');
   });
 });
