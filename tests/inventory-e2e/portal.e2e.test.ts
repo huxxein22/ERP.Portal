@@ -45,7 +45,7 @@ describe('ERP Portal Inventory E2E boundary', () => {
   });
 
   it('serves every extracted Inventory screen', async () => {
-    for (const path of ['/inventory', '/inventory/operations', '/inventory/valuation', '/inventory/import', '/inventory/count']) {
+    for (const path of ['/inventory', '/inventory/operations', '/inventory/valuation', '/inventory/import', '/inventory/count', '/inventory/putaway']) {
       const response = await fetch(`${baseUrl}${path}`);
       expect(response.status, path).toBe(200);
       expect(response.headers.get('content-type')).toContain('text/html');

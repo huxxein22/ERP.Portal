@@ -9,6 +9,7 @@ import { assertValuationQuery, type InventoryValuationQuery, type InventoryValua
 import { assertOperationTypesQuery, assertStockLedgerQuery, type InventoryOperationType, type InventoryOperationTypesQuery, type InventoryStockLedgerLine, type InventoryStockLedgerQuery } from "../contracts/inventory/operations";
 import { assertImportPreviewRequest, type InventoryImportPreviewRequest, type InventoryImportPreviewResponse } from "../contracts/inventory/imports";
 import { assertCountQuery, type InventoryCountQuery, type InventoryCountResponse } from "../contracts/inventory/counts";
+import { assertPutawayQuery, type InventoryPutawayQuery, type InventoryPutawayRule } from "../contracts/inventory/putaway";
 export async function getAvailability(request: InventoryAvailabilityRequest, fetcher: typeof fetch = fetch): Promise<InventoryAvailabilityResponse> {
   assertScopedRequest(request);
   const response = await fetcher("/api/inventory/availability", {
@@ -115,5 +116,17 @@ export function getCount(query: InventoryCountQuery, fetcher: typeof fetch = fet
       throw { kind, scope: query, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
     }
     return response.json() as Promise<InventoryCountResponse>;
+  });
+}
+
+export function listPutawayRules(query: InventoryPutawayQuery, fetcher: typeof fetch = fetch): Promise<{ items: InventoryPutawayRule[] }> {
+  assertPutawayQuery(query);
+  const params = new URLSearchParams({ companyId: String(query.companyId), branchId: String(query.branchId), correlationId: query.correlationId });
+  return fetcher(`/api/inventory/putaway/rules?${params.toString()}`, { headers: { 'x-correlation-id': query.correlationId } }).then(async (response) => {
+    if (!response.ok) {
+      const kind: InventoryGatewayError['kind'] = response.status === 401 ? 'unauthenticated' : response.status === 403 ? 'permission-denied' : 'transport';
+      throw { kind, scope: query, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
+    }
+    return response.json() as Promise<{ items: InventoryPutawayRule[] }>;
   });
 }

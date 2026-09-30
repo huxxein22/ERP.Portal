@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { assertScopedRequest } from "../../src/contracts/inventory/availability";
 import { getAvailability } from "../../src/gateway/inventoryGateway";
 import { forwardInventoryAvailability } from "../../src/gateway/inventoryProxy";
-import { getCount, getStockLedger, getValuation, listLocations, listOperationTypes, listWarehouses } from "../../src/gateway/inventoryGateway";
+import { getCount, listPutawayRules, getStockLedger, getValuation, listLocations, listOperationTypes, listWarehouses } from "../../src/gateway/inventoryGateway";
 import { previewStockImport } from "../../src/gateway/inventoryGateway";
 describe("Inventory Portal contract boundary", () => {
   it("requires correlation and scope inputs", () => {
@@ -144,5 +144,15 @@ describe("Inventory Portal contract boundary", () => {
     expect(response.session).toBeNull();
     expect(requestedUrl).toContain("sessionId=count-1");
     expect(requestedUrl).toContain("warehouseId=11");
+  });
+
+  it("preserves branch scope for Putaway rules", async () => {
+    let requestedUrl = "";
+    await listPutawayRules({ companyId: 1, branchId: 7, correlationId: "corr-putaway" }, async (input) => {
+      requestedUrl = String(input);
+      return new Response(JSON.stringify({ items: [] }), { status: 200 });
+    });
+    expect(requestedUrl).toContain("companyId=1");
+    expect(requestedUrl).toContain("branchId=7");
   });
 });
