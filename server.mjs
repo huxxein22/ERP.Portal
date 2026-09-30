@@ -236,7 +236,7 @@ const server = createServer((request, response) => {
     return;
   }
 
-  if (request.method === 'POST' && ['/api/inventory/putaway/rules', '/api/inventory/routes', '/api/inventory/rules', '/api/inventory/delivery-methods', '/api/inventory/stock/receive', '/api/inventory/stock/issue', '/api/inventory/stock/adjust', '/api/inventory/count/start', '/api/inventory/count/line', '/api/inventory/count/finalize', '/api/inventory/count/apply-difference'].includes(request.url)) {
+  if (request.method === 'POST' && ['/api/inventory/putaway/rules', '/api/inventory/routes', '/api/inventory/rules', '/api/inventory/delivery-methods', '/api/inventory/stock/receive', '/api/inventory/stock/reserve', '/api/inventory/stock/release', '/api/inventory/stock/issue', '/api/inventory/stock/adjust', '/api/inventory/count/start', '/api/inventory/count/line', '/api/inventory/count/finalize', '/api/inventory/count/apply-difference'].includes(request.url)) {
     readBody(request).then(async (body) => {
       if (!body.trim()) {
         response.writeHead(400, { 'content-type': 'application/json' });

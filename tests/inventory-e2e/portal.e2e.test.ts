@@ -99,5 +99,12 @@ describe('ERP Portal Inventory E2E boundary', () => {
       body: '{"companyId":1,"warehouseId":11,"productCode":"P-1","variantCode":"V-1","quantity":1}',
     });
     expect(unconfiguredStockWrite.status).toBe(503);
+
+    const unconfiguredReserveWrite = await fetch(`${baseUrl}/api/inventory/stock/reserve`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{"companyId":1,"warehouseId":11,"productCode":"P-1","variantCode":"V-1","quantity":1,"idempotencyKey":"e2e-reserve"}',
+    });
+    expect(unconfiguredReserveWrite.status).toBe(503);
   });
 });

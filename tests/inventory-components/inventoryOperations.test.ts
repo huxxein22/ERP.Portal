@@ -8,6 +8,9 @@ describe('Inventory Operations component', () => {
     expect(html).toContain('name="warehouseId"');
     expect(html).toContain('/api/inventory/operation-types');
     expect(html).toContain('/api/inventory/ledger');
+    expect(html).toContain('/api/inventory/stock/reserve');
+    expect(html).toContain('/api/inventory/stock/release');
+    expect(html).toContain('Reservation access denied for this scope.');
     expect(html).toContain('Access denied for this company/warehouse scope.');
     expect(html).toContain('Inventory gateway is unavailable. Try again later.');
   });
