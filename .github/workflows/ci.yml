@@ -12,4 +12,5 @@ jobs:
         with:
           node-version: 22
       - run: npm install --no-audit --no-fund
+      - run: bash tools/verify-inventory-boundary.sh
       - run: npm test
