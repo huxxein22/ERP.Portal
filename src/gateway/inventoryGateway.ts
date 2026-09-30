@@ -7,6 +7,7 @@ import {
 import { assertScopedQuery, type InventoryLocation, type InventoryScopedQuery, type InventoryWarehouse } from "../contracts/inventory/locations";
 import { assertValuationQuery, type InventoryValuationQuery, type InventoryValuationResponse } from "../contracts/inventory/valuation";
 import { assertOperationTypesQuery, assertStockLedgerQuery, type InventoryOperationType, type InventoryOperationTypesQuery, type InventoryStockLedgerLine, type InventoryStockLedgerQuery } from "../contracts/inventory/operations";
+import { assertImportPreviewRequest, type InventoryImportPreviewRequest, type InventoryImportPreviewResponse } from "../contracts/inventory/imports";
 export async function getAvailability(request: InventoryAvailabilityRequest, fetcher: typeof fetch = fetch): Promise<InventoryAvailabilityResponse> {
   assertScopedRequest(request);
   const response = await fetcher("/api/inventory/availability", {
@@ -90,4 +91,16 @@ export function getStockLedger(query: InventoryStockLedgerQuery, fetcher: typeof
     }
     return response.json() as Promise<{ lines: InventoryStockLedgerLine[] }>;
   });
+}
+
+export async function previewStockImport(request: InventoryImportPreviewRequest, fetcher: typeof fetch = fetch): Promise<InventoryImportPreviewResponse> {
+  assertImportPreviewRequest(request);
+  const response = await fetcher('/api/inventory/import/preview', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-correlation-id': request.correlationId },
+    body: JSON.stringify(request),
+  });
+  if (response.ok) return response.json() as Promise<InventoryImportPreviewResponse>;
+  const kind: InventoryGatewayError['kind'] = response.status === 401 ? 'unauthenticated' : response.status === 403 ? 'permission-denied' : 'transport';
+  throw { kind, scope: request, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
 }

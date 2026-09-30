@@ -3,10 +3,12 @@ import { randomUUID } from 'node:crypto';
 import { assertScopedRequest } from './src/contracts/inventory/availabilityRuntime.mjs';
 import { assertValuationQuery } from './src/contracts/inventory/valuationRuntime.mjs';
 import { assertOperationTypesQuery, assertStockLedgerQuery } from './src/contracts/inventory/operationsRuntime.mjs';
-import { forwardInventoryAvailability, forwardInventoryRead } from './src/gateway/inventoryProxy.mjs';
+import { assertImportPreviewRequest } from './src/contracts/inventory/importsRuntime.mjs';
+import { forwardInventoryAvailability, forwardInventoryRead, forwardInventoryWrite } from './src/gateway/inventoryProxy.mjs';
 import { renderInventoryOverview } from './src/components/inventory/inventoryOverview.mjs';
 import { renderInventoryOperations } from './src/components/inventory/inventoryOperations.mjs';
 import { renderInventoryValuation } from './src/components/inventory/inventoryValuation.mjs';
+import { renderInventoryImport } from './src/components/inventory/inventoryImport.mjs';
 
 const port = Number(process.env.PORT ?? 3000);
 const inventoryBaseUrl = process.env.INVENTORY_BASE_URL;
@@ -48,6 +50,12 @@ const server = createServer((request, response) => {
   if (request.method === 'GET' && request.url === '/inventory/valuation') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     response.end(renderInventoryValuation());
+    return;
+  }
+
+  if (request.method === 'GET' && request.url === '/inventory/import') {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    response.end(renderInventoryImport());
     return;
   }
 
@@ -118,6 +126,39 @@ const server = createServer((request, response) => {
         response.writeHead(400, { 'content-type': 'application/json' });
         response.end(JSON.stringify({ error: 'Invalid request body' }));
       });
+    return;
+  }
+
+  if (request.method === 'POST' && request.url === '/api/inventory/import/preview') {
+    readBody(request).then(async (body) => {
+      let payload;
+      try {
+        payload = JSON.parse(body);
+        const headerCorrelationId = request.headers['x-correlation-id'];
+        if (!payload.correlationId && headerCorrelationId) payload.correlationId = headerCorrelationId;
+        assertImportPreviewRequest(payload);
+      } catch (error) {
+        response.writeHead(400, { 'content-type': 'application/json' });
+        response.end(JSON.stringify({ error: error instanceof Error ? error.message : 'Invalid import preview' }));
+        return;
+      }
+      const correlationId = request.headers['x-correlation-id'] ?? payload.correlationId;
+      if (!inventoryBaseUrl) {
+        response.writeHead(503, { 'content-type': 'application/json' });
+        response.end(JSON.stringify({ service: 'ERP.Portal', status: 'inventory-gateway-unconfigured' }));
+        return;
+      }
+      try {
+        const upstream = await forwardInventoryWrite('/api/inventory/import/preview', { body, authorization: request.headers.authorization, correlationId }, inventoryBaseUrl);
+        await writeProxyResponse(response, upstream);
+      } catch {
+        response.writeHead(502, { 'content-type': 'application/json' });
+        response.end(JSON.stringify({ service: 'ERP.Portal', status: 'inventory-gateway-unavailable' }));
+      }
+    }).catch(() => {
+      response.writeHead(400, { 'content-type': 'application/json' });
+      response.end(JSON.stringify({ error: 'Invalid request body' }));
+    });
     return;
   }
 

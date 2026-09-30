@@ -3,6 +3,7 @@ import { assertScopedRequest } from "../../src/contracts/inventory/availability"
 import { getAvailability } from "../../src/gateway/inventoryGateway";
 import { forwardInventoryAvailability } from "../../src/gateway/inventoryProxy";
 import { getStockLedger, getValuation, listLocations, listOperationTypes, listWarehouses } from "../../src/gateway/inventoryGateway";
+import { previewStockImport } from "../../src/gateway/inventoryGateway";
 describe("Inventory Portal contract boundary", () => {
   it("requires correlation and scope inputs", () => {
     expect(() => assertScopedRequest({ companyId: 1, branchId: 7, correlationId: "" })).toThrow("correlationId");
@@ -118,5 +119,19 @@ describe("Inventory Portal contract boundary", () => {
     expect(ledgerUrl).toContain("warehouseId=11");
     expect(ledgerUrl).toContain("fromDate=2026-01-01");
     expect(ledgerUrl).toContain("toDate=2026-01-31");
+  });
+
+  it("keeps import preview separate and preserves its scoped payload", async () => {
+    let received: RequestInit | undefined;
+    const response = await previewStockImport({
+      companyId: 1, branchId: 7, warehouseId: 11, headers: ["product_code", "quantity"],
+      rows: [{ rowNumber: 1, productCode: "SKU-1", rawQuantity: "2" }], correlationId: "corr-import-preview",
+    }, async (_input, init) => {
+      received = init;
+      return new Response(JSON.stringify({ accepted: true, headerErrors: [], rows: [], duplicateRows: 0, stagedUnits: 2 }), { status: 200 });
+    });
+    expect(response.accepted).toBe(true);
+    expect(received?.method).toBe("POST");
+    expect(received?.body).toContain('"warehouseId":11');
   });
 });
