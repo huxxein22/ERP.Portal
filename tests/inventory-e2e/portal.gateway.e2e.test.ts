@@ -1,0 +1,91 @@
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { createServer as createHttpServer, type Server } from 'node:http';
+import { createServer as createNetServer } from 'node:net';
+import { once } from 'node:events';
+
+let portal: ChildProcessWithoutNullStreams;
+let portalUrl: string;
+let gateway: Server;
+let gatewayUrl: string;
+let forwarded: { path: string; authorization?: string; correlation?: string };
+
+async function freePort(): Promise<number> {
+  const probe = createNetServer();
+  probe.listen(0, '127.0.0.1');
+  await once(probe, 'listening');
+  const address = probe.address();
+  const port = typeof address === 'object' && address ? address.port : 0;
+  await new Promise<void>((resolve, reject) => probe.close((error) => error ? reject(error) : resolve()));
+  return port;
+}
+
+async function waitForHealth(url: string): Promise<void> {
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    try {
+      if ((await fetch(`${url}/health`)).ok) return;
+    } catch {
+      // The child process may still be starting.
+    }
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  throw new Error('Portal server did not become healthy');
+}
+
+describe('ERP Portal Inventory Gateway forwarding E2E', () => {
+  beforeAll(async () => {
+    forwarded = { path: '' };
+    const gatewayPort = await freePort();
+    gateway = createHttpServer((request, response) => {
+      forwarded = {
+        path: request.url ?? '',
+        authorization: request.headers.authorization,
+        correlation: request.headers['x-correlation-id'],
+      };
+      if (request.url === '/health') {
+        response.writeHead(200, { 'content-type': 'application/json' });
+        response.end(JSON.stringify({ service: 'ERP.Inventory.Gateway', status: 'ok' }));
+        return;
+      }
+      if (request.url?.startsWith('/api/inventory/branch-availability')) {
+        response.writeHead(200, { 'content-type': 'application/json' });
+        response.end(JSON.stringify({ items: [{ productCode: 'SKU-1', available: 4 }] }));
+        return;
+      }
+      response.writeHead(404);
+      response.end();
+    });
+    gateway.listen(gatewayPort, '127.0.0.1');
+    await once(gateway, 'listening');
+    gatewayUrl = `http://127.0.0.1:${gatewayPort}`;
+
+    const portalPort = await freePort();
+    portalUrl = `http://127.0.0.1:${portalPort}`;
+    portal = spawn(process.execPath, ['server.mjs'], {
+      cwd: process.cwd(),
+      env: { ...process.env, PORT: String(portalPort), INVENTORY_BASE_URL: gatewayUrl },
+      stdio: 'pipe',
+    });
+    await waitForHealth(portalUrl);
+  });
+
+  afterAll(() => {
+    portal.kill('SIGTERM');
+    gateway.close();
+  });
+
+  it('forwards scoped reads with auth and correlation headers to the Gateway', async () => {
+    const response = await fetch(
+      `${portalUrl}/api/inventory/branch-availability?companyId=1&branchId=7&productCode=SKU-1&correlationId=portal-e2e`,
+      { headers: { authorization: 'Bearer e2e-token', 'x-correlation-id': 'portal-header-correlation' } },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ items: [{ productCode: 'SKU-1', available: 4 }] });
+    expect(forwarded.path).toContain('/api/inventory/branch-availability?');
+    expect(forwarded.path).toContain('companyId=1');
+    expect(forwarded.path).toContain('branchId=7');
+    expect(forwarded.authorization).toBe('Bearer e2e-token');
+    expect(forwarded.correlation).toBe('portal-header-correlation');
+  });
+});
