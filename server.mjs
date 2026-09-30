@@ -1,4 +1,5 @@
 import { createServer } from 'node:http';
+import { randomUUID } from 'node:crypto';
 
 const port = Number(process.env.PORT ?? 3000);
 const inventoryBaseUrl = process.env.INVENTORY_BASE_URL;
@@ -18,10 +19,16 @@ const server = createServer((request, response) => {
       return;
     }
 
-    fetch(`${inventoryBaseUrl.replace(/\/$/, '')}/health`)
+    const correlationId = request.headers['x-correlation-id'] ?? randomUUID();
+    fetch(`${inventoryBaseUrl.replace(/\/$/, '')}/health`, {
+      headers: { 'x-correlation-id': correlationId },
+    })
       .then(async (upstream) => {
         const body = await upstream.text();
-        response.writeHead(upstream.status, { 'content-type': 'application/json' });
+        response.writeHead(upstream.status, {
+          'content-type': 'application/json',
+          'x-correlation-id': correlationId,
+        });
         response.end(body);
       })
       .catch(() => {
