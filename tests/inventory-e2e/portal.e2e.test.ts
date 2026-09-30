@@ -45,7 +45,7 @@ describe('ERP Portal Inventory E2E boundary', () => {
   });
 
   it('serves every extracted Inventory screen', async () => {
-    for (const path of ['/inventory', '/inventory/operations', '/inventory/valuation', '/inventory/import']) {
+    for (const path of ['/inventory', '/inventory/operations', '/inventory/valuation', '/inventory/import', '/inventory/count']) {
       const response = await fetch(`${baseUrl}${path}`);
       expect(response.status, path).toBe(200);
       expect(response.headers.get('content-type')).toContain('text/html');
@@ -65,5 +65,8 @@ describe('ERP Portal Inventory E2E boundary', () => {
       body: '{"companyId":1}',
     });
     expect(invalidImport.status).toBe(400);
+
+    const invalidCount = await fetch(`${baseUrl}/api/inventory/count?companyId=1&warehouseId=11&sessionId=&correlationId=e2e`);
+    expect(invalidCount.status).toBe(400);
   });
 });

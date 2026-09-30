@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { assertScopedRequest } from "../../src/contracts/inventory/availability";
 import { getAvailability } from "../../src/gateway/inventoryGateway";
 import { forwardInventoryAvailability } from "../../src/gateway/inventoryProxy";
-import { getStockLedger, getValuation, listLocations, listOperationTypes, listWarehouses } from "../../src/gateway/inventoryGateway";
+import { getCount, getStockLedger, getValuation, listLocations, listOperationTypes, listWarehouses } from "../../src/gateway/inventoryGateway";
 import { previewStockImport } from "../../src/gateway/inventoryGateway";
 describe("Inventory Portal contract boundary", () => {
   it("requires correlation and scope inputs", () => {
@@ -133,5 +133,16 @@ describe("Inventory Portal contract boundary", () => {
     expect(response.accepted).toBe(true);
     expect(received?.method).toBe("POST");
     expect(received?.body).toContain('"warehouseId":11');
+  });
+
+  it("preserves the count session scope through the read gateway", async () => {
+    let requestedUrl = "";
+    const response = await getCount({ companyId: 1, warehouseId: 11, sessionId: "count-1", correlationId: "corr-count" }, async (input) => {
+      requestedUrl = String(input);
+      return new Response(JSON.stringify({ session: null }), { status: 200 });
+    });
+    expect(response.session).toBeNull();
+    expect(requestedUrl).toContain("sessionId=count-1");
+    expect(requestedUrl).toContain("warehouseId=11");
   });
 });

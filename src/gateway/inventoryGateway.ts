@@ -8,6 +8,7 @@ import { assertScopedQuery, type InventoryLocation, type InventoryScopedQuery, t
 import { assertValuationQuery, type InventoryValuationQuery, type InventoryValuationResponse } from "../contracts/inventory/valuation";
 import { assertOperationTypesQuery, assertStockLedgerQuery, type InventoryOperationType, type InventoryOperationTypesQuery, type InventoryStockLedgerLine, type InventoryStockLedgerQuery } from "../contracts/inventory/operations";
 import { assertImportPreviewRequest, type InventoryImportPreviewRequest, type InventoryImportPreviewResponse } from "../contracts/inventory/imports";
+import { assertCountQuery, type InventoryCountQuery, type InventoryCountResponse } from "../contracts/inventory/counts";
 export async function getAvailability(request: InventoryAvailabilityRequest, fetcher: typeof fetch = fetch): Promise<InventoryAvailabilityResponse> {
   assertScopedRequest(request);
   const response = await fetcher("/api/inventory/availability", {
@@ -103,4 +104,16 @@ export async function previewStockImport(request: InventoryImportPreviewRequest,
   if (response.ok) return response.json() as Promise<InventoryImportPreviewResponse>;
   const kind: InventoryGatewayError['kind'] = response.status === 401 ? 'unauthenticated' : response.status === 403 ? 'permission-denied' : 'transport';
   throw { kind, scope: request, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
+}
+
+export function getCount(query: InventoryCountQuery, fetcher: typeof fetch = fetch): Promise<InventoryCountResponse> {
+  assertCountQuery(query);
+  const params = new URLSearchParams({ companyId: String(query.companyId), warehouseId: String(query.warehouseId), sessionId: query.sessionId, correlationId: query.correlationId });
+  return fetcher(`/api/inventory/count?${params.toString()}`, { headers: { 'x-correlation-id': query.correlationId } }).then(async (response) => {
+    if (!response.ok) {
+      const kind: InventoryGatewayError['kind'] = response.status === 401 ? 'unauthenticated' : response.status === 403 ? 'permission-denied' : 'transport';
+      throw { kind, scope: query, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
+    }
+    return response.json() as Promise<InventoryCountResponse>;
+  });
 }
