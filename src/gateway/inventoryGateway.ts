@@ -11,6 +11,7 @@ import { assertImportPreviewRequest, type InventoryImportPreviewRequest, type In
 import { assertCountQuery, type InventoryCountQuery, type InventoryCountResponse } from "../contracts/inventory/counts";
 import { assertPutawayQuery, type InventoryPutawayQuery, type InventoryPutawayRule } from "../contracts/inventory/putaway";
 import { assertCompanyQuery, type InventoryCompanyQuery, type InventoryDeliveryMethod, type InventoryRoute, type InventoryRule } from "../contracts/inventory/configuration";
+import { assertBranchQuery, type InventoryBranchAvailabilityResponse, type InventoryBranchQuery, type InventoryBranchValuationResponse } from "../contracts/inventory/branchBalances";
 export async function getAvailability(request: InventoryAvailabilityRequest, fetcher: typeof fetch = fetch): Promise<InventoryAvailabilityResponse> {
   assertScopedRequest(request);
   const response = await fetcher("/api/inventory/availability", {
@@ -148,4 +149,30 @@ export function listDeliveryMethods(query: InventoryCompanyQuery, fetcher: typeo
     if (!response.ok) throw { kind: response.status === 401 ? 'unauthenticated' : response.status === 403 ? 'permission-denied' : 'transport', scope: query, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
     return response.json() as Promise<{ items: InventoryDeliveryMethod[] }>;
   });
+}
+
+function getBranch<T>(path: string, query: InventoryBranchQuery, fetcher: typeof fetch): Promise<T> {
+  assertBranchQuery(query);
+  const params = new URLSearchParams({
+    companyId: String(query.companyId),
+    branchId: String(query.branchId),
+    correlationId: query.correlationId,
+  });
+  if (query.productCode) params.set('productCode', query.productCode);
+  if (query.variantCode) params.set('variantCode', query.variantCode);
+  return fetcher(`${path}?${params.toString()}`, { headers: { 'x-correlation-id': query.correlationId } }).then(async (response) => {
+    if (!response.ok) {
+      const kind: InventoryGatewayError['kind'] = response.status === 401 ? 'unauthenticated' : response.status === 403 ? 'permission-denied' : 'transport';
+      throw { kind, scope: query, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
+    }
+    return response.json() as Promise<T>;
+  });
+}
+
+export function getBranchAvailability(query: InventoryBranchQuery, fetcher: typeof fetch = fetch): Promise<InventoryBranchAvailabilityResponse> {
+  return getBranch('/api/inventory/branch-availability', query, fetcher);
+}
+
+export function getBranchValuation(query: InventoryBranchQuery, fetcher: typeof fetch = fetch): Promise<InventoryBranchValuationResponse> {
+  return getBranch('/api/inventory/branch-valuation', query, fetcher);
 }

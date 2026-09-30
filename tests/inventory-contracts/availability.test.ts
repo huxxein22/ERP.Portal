@@ -4,6 +4,8 @@ import { getAvailability } from "../../src/gateway/inventoryGateway";
 import { forwardInventoryAvailability } from "../../src/gateway/inventoryProxy";
 import { getCount, listDeliveryMethods, listPutawayRules, listRoutes, getStockLedger, getValuation, listLocations, listOperationTypes, listWarehouses } from "../../src/gateway/inventoryGateway";
 import { previewStockImport } from "../../src/gateway/inventoryGateway";
+import { assertBranchQuery } from "../../src/contracts/inventory/branchBalances";
+import { getBranchAvailability, getBranchValuation } from "../../src/gateway/inventoryGateway";
 describe("Inventory Portal contract boundary", () => {
   it("requires correlation and scope inputs", () => {
     expect(() => assertScopedRequest({ companyId: 1, branchId: 7, correlationId: "" })).toThrow("correlationId");
@@ -169,5 +171,22 @@ describe("Inventory Portal contract boundary", () => {
     });
     expect(routesUrl).toContain("companyId=1");
     expect(deliveryUrl).toContain("activeOnly=true");
+  });
+
+  it("keeps branch balances scoped and preserves valuation masking", async () => {
+    expect(() => assertBranchQuery({ companyId: 1, branchId: 0, correlationId: "corr-branch" })).toThrow("branchId");
+    let availabilityUrl = "";
+    await getBranchAvailability({ companyId: 1, branchId: 7, correlationId: "corr-branch-availability" }, async (input) => {
+      availabilityUrl = String(input);
+      return new Response(JSON.stringify({ items: [] }), { status: 200 });
+    });
+    expect(availabilityUrl).toContain("branchId=7");
+    let valuationUrl = "";
+    const valuation = await getBranchValuation({ companyId: 1, branchId: 7, productCode: "SKU-1", correlationId: "corr-branch-valuation" }, async (input) => {
+      valuationUrl = String(input);
+      return new Response(JSON.stringify({ items: [], financialsVisible: false }), { status: 200 });
+    });
+    expect(valuation.financialsVisible).toBe(false);
+    expect(valuationUrl).toContain("productCode=SKU-1");
   });
 });

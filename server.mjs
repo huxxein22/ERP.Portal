@@ -15,6 +15,8 @@ import { renderInventoryImport } from './src/components/inventory/inventoryImpor
 import { renderInventoryCount } from './src/components/inventory/inventoryCount.mjs';
 import { renderInventoryPutaway } from './src/components/inventory/inventoryPutaway.mjs';
 import { renderInventoryConfiguration } from './src/components/inventory/inventoryConfiguration.mjs';
+import { renderInventoryBranchBalances } from './src/components/inventory/inventoryBranchBalances.mjs';
+import { assertBranchQuery } from './src/contracts/inventory/branchBalancesRuntime.mjs';
 
 const port = Number(process.env.PORT ?? 3000);
 const inventoryBaseUrl = process.env.INVENTORY_BASE_URL;
@@ -80,6 +82,12 @@ const server = createServer((request, response) => {
   if (request.method === 'GET' && request.url === '/inventory/configuration') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     response.end(renderInventoryConfiguration());
+    return;
+  }
+
+  if (request.method === 'GET' && request.url === '/inventory/branch-balances') {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    response.end(renderInventoryBranchBalances());
     return;
   }
 
@@ -186,7 +194,7 @@ const server = createServer((request, response) => {
     return;
   }
 
-  if (request.method === 'GET' && (request.url?.startsWith('/api/inventory/warehouses') || request.url?.startsWith('/api/inventory/locations') || request.url?.startsWith('/api/inventory/valuation') || request.url?.startsWith('/api/inventory/operation-types') || request.url?.startsWith('/api/inventory/ledger') || request.url?.startsWith('/api/inventory/count') || request.url?.startsWith('/api/inventory/putaway/rules') || request.url?.startsWith('/api/inventory/routes') || request.url?.startsWith('/api/inventory/delivery-methods'))) {
+  if (request.method === 'GET' && (request.url?.startsWith('/api/inventory/warehouses') || request.url?.startsWith('/api/inventory/locations') || request.url?.startsWith('/api/inventory/valuation') || request.url?.startsWith('/api/inventory/operation-types') || request.url?.startsWith('/api/inventory/ledger') || request.url?.startsWith('/api/inventory/count') || request.url?.startsWith('/api/inventory/putaway/rules') || request.url?.startsWith('/api/inventory/routes') || request.url?.startsWith('/api/inventory/delivery-methods') || request.url?.startsWith('/api/inventory/branch-availability') || request.url?.startsWith('/api/inventory/branch-valuation'))) {
     const url = new URL(request.url, `http://${request.headers.host ?? 'localhost'}`);
     const path = url.pathname;
     const companyId = Number(url.searchParams.get('companyId'));
@@ -201,8 +209,12 @@ const server = createServer((request, response) => {
     const isPutaway = path.endsWith('/putaway/rules');
     const isRoutes = path.endsWith('/routes');
     const isDeliveryMethods = path.endsWith('/delivery-methods');
+    const isBranchAvailability = path.endsWith('/branch-availability');
+    const isBranchValuation = path.endsWith('/branch-valuation');
     try {
-      if (isValuation) {
+      if (isBranchAvailability || isBranchValuation) {
+        assertBranchQuery({ companyId, branchId, productCode: url.searchParams.get('productCode') ?? undefined, variantCode: url.searchParams.get('variantCode') ?? undefined, correlationId });
+      } else if (isValuation) {
         assertValuationQuery({ companyId, warehouseId: Number(warehouseIdValue), correlationId });
       } else if (isOperationTypes) {
         assertOperationTypesQuery({ companyId, correlationId });
