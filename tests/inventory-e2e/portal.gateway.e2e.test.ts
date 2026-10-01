@@ -77,6 +77,11 @@ describe('ERP Portal Inventory Gateway forwarding E2E', () => {
         response.end(JSON.stringify({ accepted: true, status: 'previewed_masked', totalAmount: 0, totalQuantity: 2, allocationMethod: 'quantity', financialsVisible: false, maskingReason: 'finance.costs permission is required to view cost amounts.', allocations: [] }));
         return;
       }
+      if (request.method === 'POST' && request.url === '/api/inventory/landed-costs/apply') {
+        response.writeHead(200, { 'content-type': 'application/json' });
+        response.end(JSON.stringify({ operationId: 'e2e-landed-cost-operation', status: 'committed', replayed: false, totalAmount: 20, allocationMethod: 'quantity' }));
+        return;
+      }
       if (request.method === 'POST' && request.url === '/api/inventory/catalog/product-variant') {
         response.writeHead(200, { 'content-type': 'application/json' });
         response.end(JSON.stringify({ status: 'CATALOG_UPSERTED', productId: 'e2e-product', variantId: 'e2e-variant' }));
@@ -231,6 +236,30 @@ describe('ERP Portal Inventory Gateway forwarding E2E', () => {
     expect(JSON.parse(forwarded.body)).toEqual(JSON.parse(body));
     expect(forwarded.authorization).toBe('Bearer e2e-token');
     expect(forwarded.correlation).toBe('portal-landed-cost-header');
+  });
+
+  it('forwards scoped Landed Cost Apply with idempotency through the Gateway', async () => {
+    const body = JSON.stringify({
+      companyId: 1,
+      warehouseId: 11,
+      reference: 'freight-e2e',
+      totalAmount: 20,
+      currency: 'EGP',
+      idempotencyKey: 'landed-cost-apply-e2e',
+      lines: [{ locationId: 4, productCode: 'SKU-1', variantCode: 'BLUE-M', quantity: 2, formerUnitCost: 50 }],
+      correlationId: 'portal-landed-cost-apply-e2e',
+    });
+    const response = await fetch(`${portalUrl}/api/inventory/landed-costs/apply`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer e2e-token', 'x-correlation-id': 'portal-landed-cost-apply-header', 'content-type': 'application/json' },
+      body,
+    });
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ operationId: 'e2e-landed-cost-operation', status: 'committed' });
+    expect(forwarded.path).toBe('/api/inventory/landed-costs/apply');
+    expect(JSON.parse(forwarded.body)).toEqual(JSON.parse(body));
+    expect(forwarded.authorization).toBe('Bearer e2e-token');
+    expect(forwarded.correlation).toBe('portal-landed-cost-apply-header');
   });
 
   it('forwards Accounting planning as a shadow-only Gateway operation', async () => {
