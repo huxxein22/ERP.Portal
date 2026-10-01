@@ -67,6 +67,11 @@ describe('ERP Portal Inventory Gateway forwarding E2E', () => {
         response.end(JSON.stringify({ operationId: 'e2e-operation', status: 'committed' }));
         return;
       }
+      if (request.method === 'POST' && request.url === '/api/inventory/catalog/product-variant') {
+        response.writeHead(200, { 'content-type': 'application/json' });
+        response.end(JSON.stringify({ status: 'CATALOG_UPSERTED', productId: 'e2e-product', variantId: 'e2e-variant' }));
+        return;
+      }
       response.writeHead(404);
       response.end();
       });
@@ -140,5 +145,30 @@ describe('ERP Portal Inventory Gateway forwarding E2E', () => {
     expect(forwarded.path).toContain('warehouseId=11');
     expect(forwarded.authorization).toBe('Bearer forecast-token');
     expect(forwarded.correlation).toBe('portal-forecast-header');
+  });
+
+  it('forwards explicit Catalog provisioning without exposing a database or private gRPC route', async () => {
+    const body = JSON.stringify({
+      companyId: 1,
+      externalId: 'portal-catalog-e2e',
+      productCode: 'SKU-E2E',
+      variantCode: 'BLUE-M',
+      displayName: 'Blue medium',
+      sourceVersion: 'portal-e2e-v1',
+      correlationId: 'portal-catalog-e2e',
+    });
+    const response = await fetch(`${portalUrl}/api/inventory/catalog/product-variant`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer e2e-token', 'x-correlation-id': 'portal-catalog-header', 'content-type': 'application/json' },
+      body,
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ status: 'CATALOG_UPSERTED', productId: 'e2e-product' });
+    expect(forwarded.method).toBe('POST');
+    expect(forwarded.path).toBe('/api/inventory/catalog/product-variant');
+    expect(JSON.parse(forwarded.body)).toEqual(JSON.parse(body));
+    expect(forwarded.authorization).toBe('Bearer e2e-token');
+    expect(forwarded.correlation).toBe('portal-catalog-header');
   });
 });

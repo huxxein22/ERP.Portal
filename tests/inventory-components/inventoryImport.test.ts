@@ -11,6 +11,9 @@ describe('Inventory Import component', () => {
     expect(html).toContain('Stage reviewed import');
     expect(html).toContain('Duplicate rows:');
     expect(html).toContain('Catalog identity failures are shown per row and block staging.');
+    expect(html).toContain('Explicit Catalog identity provisioning');
+    expect(html).toContain('/api/inventory/catalog/product-variant');
+    expect(html).toContain('Run Preview import again');
     expect(html).toContain('Catalog product ID');
     expect(html).toContain('Catalog variant ID');
     expect(html).toContain('Catalog version');

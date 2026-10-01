@@ -65,6 +65,13 @@ describe('ERP Portal Inventory E2E boundary', () => {
     const unconfiguredForecast = await fetch(`${baseUrl}/api/inventory/forecast?companyId=1&branchId=7&warehouseId=11&productCode=SKU-1&variantCode=BLUE-M&correlationId=e2e`);
     expect(unconfiguredForecast.status).toBe(503);
 
+    const unconfiguredCatalogProvisioning = await fetch(`${baseUrl}/api/inventory/catalog/product-variant`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{"companyId":1,"productCode":"SKU-1","variantCode":"BLUE-M","displayName":"Blue medium","sourceVersion":"e2e"}',
+    });
+    expect(unconfiguredCatalogProvisioning.status).toBe(503);
+
     const invalidImport = await fetch(`${baseUrl}/api/inventory/import/preview`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },

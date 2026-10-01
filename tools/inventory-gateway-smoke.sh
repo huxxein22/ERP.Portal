@@ -39,12 +39,23 @@ grep -Eq '"incoming"[[:space:]]*:[[:space:]]*6' <<<"$forecast"
 grep -Eq '"outgoing"[[:space:]]*:[[:space:]]*4' <<<"$forecast"
 grep -Eq '"forecasted"[[:space:]]*:[[:space:]]*10' <<<"$forecast"
 
+catalog_provisioning="$(curl --fail --silent --show-error \
+  -X POST \
+  -H 'authorization: Bearer dev-inventory-token' \
+  -H 'content-type: application/json' \
+  -H 'x-correlation-id: portal-catalog-provisioning-smoke' \
+  --data '{"companyId":1,"externalId":"portal-catalog-provisioning-smoke","productCode":"SKU-PORTAL-CATALOG-SMOKE","variantCode":"GREEN-L","displayName":"Portal Catalog smoke","sourceVersion":"portal-catalog-provisioning-smoke","active":true,"costPrice":80,"salesPrice":125,"correlationId":"portal-catalog-provisioning-smoke"}' \
+  "$portal_url/api/inventory/catalog/product-variant")"
+grep -Eq '"status"[[:space:]]*:[[:space:]]*"CATALOG_(UPSERTED|UPSERT_CONFLICT)"' <<<"$catalog_provisioning"
+grep -Eq '"productId"[[:space:]]*:[[:space:]]*"[^" ]+"' <<<"$catalog_provisioning"
+grep -Eq '"variantId"[[:space:]]*:[[:space:]]*"[^" ]+"' <<<"$catalog_provisioning"
+
 import_preview="$(curl --fail --silent --show-error \
   -X POST \
   -H 'authorization: Bearer dev-inventory-token' \
   -H 'content-type: application/json' \
   -H 'x-correlation-id: portal-import-preview-smoke' \
-  --data '{"companyId":1,"branchId":7,"warehouseId":192,"headers":["product_code","variant_code","quantity","unit_cost"],"rows":[{"rowNumber":1,"locationId":192,"productCode":"SKU-1","variantCode":"BLUE-M","rawQuantity":"3","rawUnitCost":"80"}],"correlationId":"portal-import-preview-smoke"}' \
+  --data '{"companyId":1,"branchId":7,"warehouseId":192,"headers":["product_code","variant_code","quantity","unit_cost"],"rows":[{"rowNumber":1,"locationId":192,"productCode":"SKU-PORTAL-CATALOG-SMOKE","variantCode":"GREEN-L","rawQuantity":"3","rawUnitCost":"80"}],"correlationId":"portal-import-preview-smoke"}' \
   "$portal_url/api/inventory/import/preview")"
 grep -Eq '"accepted"[[:space:]]*:[[:space:]]*true' <<<"$import_preview"
 grep -Eq '"action"[[:space:]]*:[[:space:]]*"would_stage"' <<<"$import_preview"
@@ -56,7 +67,7 @@ catalog_cost_preview="$(curl --fail --silent --show-error \
   -H 'authorization: Bearer dev-inventory-token' \
   -H 'content-type: application/json' \
   -H 'x-correlation-id: portal-catalog-cost-preview-smoke' \
-  --data '{"companyId":1,"branchId":7,"warehouseId":192,"headers":["product_code","variant_code","quantity"],"rows":[{"rowNumber":1,"locationId":192,"productCode":"SKU-1","variantCode":"BLUE-M","rawQuantity":"2"}],"correlationId":"portal-catalog-cost-preview-smoke"}' \
+  --data '{"companyId":1,"branchId":7,"warehouseId":192,"headers":["product_code","variant_code","quantity"],"rows":[{"rowNumber":1,"locationId":192,"productCode":"SKU-PORTAL-CATALOG-SMOKE","variantCode":"GREEN-L","rawQuantity":"2"}],"correlationId":"portal-catalog-cost-preview-smoke"}' \
   "$portal_url/api/inventory/import/preview")"
 grep -Eq '"accepted"[[:space:]]*:[[:space:]]*true' <<<"$catalog_cost_preview"
 grep -Eq '"incomingUnitCost"[[:space:]]*:[[:space:]]*80' <<<"$catalog_cost_preview"
@@ -67,7 +78,7 @@ import_stage="$(curl --fail --silent --show-error \
   -H 'authorization: Bearer dev-inventory-token' \
   -H 'content-type: application/json' \
   -H 'x-correlation-id: portal-import-stage-smoke' \
-  --data '{"companyId":1,"branchId":7,"warehouseId":192,"headers":["product_code","variant_code","quantity","unit_cost"],"rows":[{"rowNumber":1,"locationId":192,"productCode":"SKU-1","variantCode":"BLUE-M","rawQuantity":"3","rawUnitCost":"80"}],"reference":"portal-import-smoke","idempotencyKey":"portal-import-stage-smoke","correlationId":"portal-import-stage-smoke"}' \
+  --data '{"companyId":1,"branchId":7,"warehouseId":192,"headers":["product_code","variant_code","quantity","unit_cost"],"rows":[{"rowNumber":1,"locationId":192,"productCode":"SKU-PORTAL-CATALOG-SMOKE","variantCode":"GREEN-L","rawQuantity":"3","rawUnitCost":"80"}],"reference":"portal-import-smoke","idempotencyKey":"portal-import-stage-smoke","correlationId":"portal-import-stage-smoke"}' \
   "$portal_url/api/inventory/import/stage")"
 grep -Eq '"status"[[:space:]]*:[[:space:]]*"staged"' <<<"$import_stage"
 grep -Eq '"operationId"[[:space:]]*:[[:space:]]*"[^"]+"' <<<"$import_stage"
