@@ -166,11 +166,27 @@ describe("Inventory Portal contract boundary", () => {
       { companyId: 1, warehouseId: 11, productCode: "SKU-1", variantCode: "BLUE-M", correlationId: "corr-9" },
       async (input) => {
         requestedUrl = String(input);
-        return new Response(JSON.stringify({ items: [], financialsVisible: false }), { status: 200 });
+        return new Response(JSON.stringify({
+          items: [],
+          financialsVisible: false,
+          summary: {
+            totalLayers: 1,
+            unpostedLayers: 1,
+            byMovementType: [{
+              movementType: "transfer_in",
+              layers: 1,
+              valueAbs: 0,
+              accountingEligibleLayers: 0,
+              accountingEligibleValueAbs: 0,
+              classification: "internal_transfer_by_design",
+            }],
+          },
+        }), { status: 200 });
       },
     );
 
     expect(response.financialsVisible).toBe(false);
+    expect(response.summary?.byMovementType[0]?.classification).toBe("internal_transfer_by_design");
     expect(requestedUrl).toContain("companyId=1");
     expect(requestedUrl).toContain("warehouseId=11");
     expect(requestedUrl).toContain("productCode=SKU-1");

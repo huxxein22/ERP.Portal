@@ -47,6 +47,24 @@ export type InventoryValuationAuditItem = {
 export type InventoryValuationAuditResponse = {
   items: InventoryValuationAuditItem[];
   financialsVisible: boolean;
+  summary?: {
+    totalLayers: number;
+    unpostedLayers: number;
+    totalValueAbs?: number;
+    unpostedValueAbs?: number;
+    unpostedInternalTransferValue?: number;
+    unpostedPostableValue?: number;
+    unpostedInternalTransferLayers?: number;
+    unpostedPostableLayers?: number;
+    byMovementType: Array<{
+      movementType: string;
+      layers: number;
+      valueAbs?: number;
+      accountingEligibleLayers: number;
+      accountingEligibleValueAbs?: number;
+      classification: string;
+    }>;
+  };
 };
 
 export { assertValuationQuery } from "./valuationRuntime.mjs";
