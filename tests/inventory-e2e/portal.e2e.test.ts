@@ -72,6 +72,13 @@ describe('ERP Portal Inventory E2E boundary', () => {
     });
     expect(unconfiguredCatalogProvisioning.status).toBe(503);
 
+    const unconfiguredAccountingPlan = await fetch(`${baseUrl}/api/inventory/accounting/plan`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{"companyId":1,"sourceMovementId":"movement-1","sourceReference":"receipt-1","impactType":"receipt","effectiveDate":"2026-10-01","correlationId":"e2e-accounting-plan","lines":[]}',
+    });
+    expect(unconfiguredAccountingPlan.status).toBe(503);
+
     const invalidImport = await fetch(`${baseUrl}/api/inventory/import/preview`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },

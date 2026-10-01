@@ -8,7 +8,32 @@ import { assertBranchQuery } from "../../src/contracts/inventory/branchBalances"
 import { getBranchAvailability, getBranchValuation } from "../../src/gateway/inventoryGateway";
 import { provisionCatalogProductVariant } from "../../src/gateway/inventoryGateway";
 import { assertCatalogProvisioningRequest } from "../../src/contracts/inventory/catalogProvisioning";
+import { assertAccountingPlanRequest } from "../../src/contracts/inventory/accountingImpact";
+import { planAccountingImpact } from "../../src/gateway/inventoryGateway";
 describe("Inventory Portal contract boundary", () => {
+  it("validates and forwards shadow-only Accounting planning", async () => {
+    const request = {
+      companyId: 1,
+      sourceMovementId: "movement-1",
+      sourceReference: "receipt-1",
+      impactType: "receipt",
+      effectiveDate: "2026-10-01",
+      correlationId: "corr-accounting-plan",
+      lines: [
+        { accountKey: "stock_valuation", debitOrCredit: "debit" as const, amount: 10, currency: "EGP" },
+        { accountKey: "grni", debitOrCredit: "credit" as const, amount: 10, currency: "EGP" },
+      ],
+    };
+    expect(() => assertAccountingPlanRequest(request)).not.toThrow();
+    let received: RequestInit | undefined;
+    const response = await planAccountingImpact(request, async (_input, init) => {
+      received = init;
+      return new Response(JSON.stringify({ planId: "plan-1", status: "shadow_planned", lines: request.lines, accountingContractVersion: "accounting-inventory-v1" }), { status: 200 });
+    });
+    expect(response).toMatchObject({ planId: "plan-1", status: "shadow_planned" });
+    expect(received?.body).toContain('"impactType":"receipt"');
+    expect(received?.body).toContain('"debitOrCredit":"debit"');
+  });
   it("validates and forwards Catalog provisioning through the Inventory Gateway", async () => {
     expect(() => assertCatalogProvisioningRequest({
       companyId: 1, productCode: "SKU-1", variantCode: "BLUE-M", displayName: "Blue medium",

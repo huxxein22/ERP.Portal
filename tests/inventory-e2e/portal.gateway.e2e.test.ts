@@ -72,6 +72,11 @@ describe('ERP Portal Inventory Gateway forwarding E2E', () => {
         response.end(JSON.stringify({ status: 'CATALOG_UPSERTED', productId: 'e2e-product', variantId: 'e2e-variant' }));
         return;
       }
+      if (request.method === 'POST' && request.url === '/api/inventory/accounting/plan') {
+        response.writeHead(200, { 'content-type': 'application/json' });
+        response.end(JSON.stringify({ planId: 'e2e-plan', status: 'shadow_planned', lines: [], accountingContractVersion: 'accounting-inventory-v1' }));
+        return;
+      }
       response.writeHead(404);
       response.end();
       });
@@ -170,5 +175,31 @@ describe('ERP Portal Inventory Gateway forwarding E2E', () => {
     expect(JSON.parse(forwarded.body)).toEqual(JSON.parse(body));
     expect(forwarded.authorization).toBe('Bearer e2e-token');
     expect(forwarded.correlation).toBe('portal-catalog-header');
+  });
+
+  it('forwards Accounting planning as a shadow-only Gateway operation', async () => {
+    const body = JSON.stringify({
+      companyId: 1,
+      sourceMovementId: 'movement-1',
+      sourceReference: 'receipt-1',
+      impactType: 'receipt',
+      effectiveDate: '2026-10-01',
+      correlationId: 'portal-accounting-e2e',
+      lines: [
+        { accountKey: 'stock_valuation', debitOrCredit: 'debit', amount: 10, currency: 'EGP' },
+        { accountKey: 'grni', debitOrCredit: 'credit', amount: 10, currency: 'EGP' },
+      ],
+    });
+    const response = await fetch(`${portalUrl}/api/inventory/accounting/plan`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer e2e-token', 'x-correlation-id': 'portal-accounting-header', 'content-type': 'application/json' },
+      body,
+    });
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ planId: 'e2e-plan', status: 'shadow_planned' });
+    expect(forwarded.path).toBe('/api/inventory/accounting/plan');
+    expect(JSON.parse(forwarded.body)).toEqual(JSON.parse(body));
+    expect(forwarded.authorization).toBe('Bearer e2e-token');
+    expect(forwarded.correlation).toBe('portal-accounting-header');
   });
 });
