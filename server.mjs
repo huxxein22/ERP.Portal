@@ -245,14 +245,14 @@ const server = createServer((request, response) => {
     return;
   }
 
-  if (request.method === 'POST' && ['/api/inventory/import/preview', '/api/inventory/import/stage'].includes(request.url)) {
+  if (request.method === 'POST' && ['/api/inventory/import/preview', '/api/inventory/import/stage', '/api/inventory/import/apply'].includes(request.url)) {
     readBody(request).then(async (body) => {
       let payload;
       try {
         payload = JSON.parse(body);
         const headerCorrelationId = request.headers['x-correlation-id'];
         if (!payload.correlationId && headerCorrelationId) payload.correlationId = headerCorrelationId;
-          assertImportPreviewRequest(payload, request.url.endsWith('/stage'));
+          assertImportPreviewRequest(payload, request.url !== '/api/inventory/import/preview');
       } catch (error) {
         response.writeHead(400, { 'content-type': 'application/json' });
         response.end(JSON.stringify({ error: error instanceof Error ? error.message : 'Invalid import preview' }));

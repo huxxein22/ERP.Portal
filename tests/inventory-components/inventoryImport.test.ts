@@ -3,14 +3,16 @@ import { renderInventoryImport } from '../../src/components/inventory/inventoryI
 import { assertImportPreviewRequest } from '../../src/contracts/inventory/importsRuntime.mjs';
 
 describe('Inventory Import component', () => {
-  it('renders preview plus explicit staging without exposing direct apply', () => {
+  it('renders preview plus explicit staging and Dev-only apply', () => {
     const html = renderInventoryImport({ companyId: 1, branchId: 7, warehouseId: 11 });
     expect(html).toContain('/api/inventory/import/preview');
-    expect(html).toContain('Preview first, then explicitly stage');
+    expect(html).toContain('Preview first, then explicitly stage or apply');
     expect(html).toContain('/api/inventory/import/stage');
     expect(html).toContain('Stage reviewed import');
     expect(html).toContain('Duplicate rows:');
-    expect(html).toContain('Catalog identity failures are shown per row and block staging.');
+    expect(html).toContain('Catalog identity failures are shown per row and block both actions.');
+    expect(html).toContain('/api/inventory/import/apply');
+    expect(html).toContain('Apply reviewed import (Dev)');
     expect(html).toContain('Explicit Catalog identity provisioning');
     expect(html).toContain('/api/inventory/catalog/product-variant');
     expect(html).toContain('Run Preview import again');
@@ -22,7 +24,6 @@ describe('Inventory Import component', () => {
     expect(html).toContain('After cost');
     expect(html).toContain('Cost delta');
     expect(html).toContain('Cost status');
-    expect(html).not.toContain('/api/inventory/import/apply');
   });
 
   it('accepts Catalog external identity keys in the preview contract', () => {

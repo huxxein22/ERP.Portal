@@ -45,4 +45,6 @@ export type InventoryImportStageRequest = InventoryImportPreviewRequest & {
   idempotencyKey: string;
 };
 
+export type InventoryImportApplyRequest = InventoryImportStageRequest;
+
 export { assertImportPreviewRequest } from './importsRuntime.mjs';

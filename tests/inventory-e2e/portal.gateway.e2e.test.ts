@@ -77,6 +77,11 @@ describe('ERP Portal Inventory Gateway forwarding E2E', () => {
         response.end(JSON.stringify({ accepted: true, status: 'previewed_masked', totalAmount: 0, totalQuantity: 2, allocationMethod: 'quantity', financialsVisible: false, maskingReason: 'finance.costs permission is required to view cost amounts.', allocations: [] }));
         return;
       }
+      if (request.method === 'POST' && request.url === '/api/inventory/import/apply') {
+        response.writeHead(200, { 'content-type': 'application/json' });
+        response.end(JSON.stringify({ operationId: 'e2e-import-operation', status: 'applied', replayed: false, stagedUnits: 5 }));
+        return;
+      }
       if (request.method === 'POST' && request.url === '/api/inventory/landed-costs/apply') {
         response.writeHead(200, { 'content-type': 'application/json' });
         response.end(JSON.stringify({ operationId: 'e2e-landed-cost-operation', status: 'committed', replayed: false, totalAmount: 20, allocationMethod: 'quantity' }));
@@ -260,6 +265,30 @@ describe('ERP Portal Inventory Gateway forwarding E2E', () => {
     expect(JSON.parse(forwarded.body)).toEqual(JSON.parse(body));
     expect(forwarded.authorization).toBe('Bearer e2e-token');
     expect(forwarded.correlation).toBe('portal-landed-cost-apply-header');
+  });
+
+  it('forwards reviewed Inventory import Apply through the Gateway', async () => {
+    const body = JSON.stringify({
+      companyId: 1,
+      branchId: 7,
+      warehouseId: 11,
+      headers: ['product_code', 'variant_code', 'quantity', 'location_id'],
+      rows: [{ rowNumber: 1, locationId: 4, productCode: 'SKU-1', variantCode: 'BLUE-M', rawQuantity: '5' }],
+      reference: 'import-e2e',
+      idempotencyKey: 'import-apply-e2e',
+      correlationId: 'portal-import-apply-e2e',
+    });
+    const response = await fetch(`${portalUrl}/api/inventory/import/apply`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer e2e-token', 'x-correlation-id': 'portal-import-apply-header', 'content-type': 'application/json' },
+      body,
+    });
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ operationId: 'e2e-import-operation', status: 'applied' });
+    expect(forwarded.path).toBe('/api/inventory/import/apply');
+    expect(JSON.parse(forwarded.body)).toEqual(JSON.parse(body));
+    expect(forwarded.authorization).toBe('Bearer e2e-token');
+    expect(forwarded.correlation).toBe('portal-import-apply-header');
   });
 
   it('forwards Accounting planning as a shadow-only Gateway operation', async () => {
