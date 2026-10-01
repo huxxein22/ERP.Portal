@@ -50,6 +50,11 @@ export type InventoryValuationAuditResponse = {
   summary?: {
     totalLayers: number;
     unpostedLayers: number;
+    financialInventoryTrustworthy?: boolean;
+    quantityDifference?: number;
+    inventoryGlBalance?: number;
+    inventoryGlReconciled?: boolean;
+    inventoryGlStatus?: string;
     totalValueAbs?: number;
     unpostedValueAbs?: number;
     unpostedInternalTransferValue?: number;

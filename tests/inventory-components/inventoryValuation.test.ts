@@ -10,5 +10,8 @@ describe('Inventory Valuation component', () => {
     expect(html).toContain('financialsVisible===true');
     expect(html).toContain('Cost and value details are permission-masked.');
     expect(html).toContain('Valuation access denied for this company/warehouse scope.');
+    expect(html).toContain('Accounting reconciliation');
+    expect(html).toContain('financialInventoryTrustworthy');
+    expect(html).toContain('inventoryGlStatus');
   });
 });
