@@ -134,6 +134,12 @@ const server = createServer((request, response) => {
     return;
   }
 
+  if (request.method === 'GET' && request.url === '/inventory/replenishment') {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    response.end(renderInventoryForecast());
+    return;
+  }
+
   if (request.method === 'GET' && request.url === '/inventory/configuration/write') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     response.end(renderInventoryConfigurationWrite());

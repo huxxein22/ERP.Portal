@@ -45,7 +45,7 @@ describe('ERP Portal Inventory E2E boundary', () => {
   });
 
   it('serves every extracted Inventory screen', async () => {
-    for (const path of ['/inventory', '/inventory/operations', '/inventory/valuation', '/inventory/import', '/inventory/count', '/inventory/putaway', '/inventory/putaway/write', '/inventory/moves', '/inventory/scrap', '/inventory/scrap/reverse', '/inventory/landed-costs', '/inventory/landed-costs/apply', '/inventory/configuration', '/inventory/delivery-methods', '/inventory/configuration/write', '/inventory/rules/write', '/inventory/branch-balances', '/inventory/locations', '/inventory/stock-by-variant', '/inventory/alerts', '/inventory/forecast']) {
+    for (const path of ['/inventory', '/inventory/operations', '/inventory/valuation', '/inventory/import', '/inventory/count', '/inventory/putaway', '/inventory/putaway/write', '/inventory/moves', '/inventory/scrap', '/inventory/scrap/reverse', '/inventory/landed-costs', '/inventory/landed-costs/apply', '/inventory/configuration', '/inventory/delivery-methods', '/inventory/configuration/write', '/inventory/rules/write', '/inventory/branch-balances', '/inventory/locations', '/inventory/stock-by-variant', '/inventory/alerts', '/inventory/forecast', '/inventory/replenishment']) {
       const response = await fetch(`${baseUrl}${path}`);
       expect(response.status, path).toBe(200);
       expect(response.headers.get('content-type')).toContain('text/html');
