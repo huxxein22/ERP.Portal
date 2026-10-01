@@ -6,7 +6,34 @@ import { getCount, listDeliveryMethods, listPutawayRules, listRoutes, getStockLe
 import { previewStockImport } from "../../src/gateway/inventoryGateway";
 import { assertBranchQuery } from "../../src/contracts/inventory/branchBalances";
 import { getBranchAvailability, getBranchValuation } from "../../src/gateway/inventoryGateway";
+import { provisionCatalogProductVariant } from "../../src/gateway/inventoryGateway";
+import { assertCatalogProvisioningRequest } from "../../src/contracts/inventory/catalogProvisioning";
 describe("Inventory Portal contract boundary", () => {
+  it("validates and forwards Catalog provisioning through the Inventory Gateway", async () => {
+    expect(() => assertCatalogProvisioningRequest({
+      companyId: 1, productCode: "SKU-1", variantCode: "BLUE-M", displayName: "Blue medium",
+      sourceVersion: "portal-v1", correlationId: "corr-catalog-provisioning",
+    })).not.toThrow();
+    expect(() => assertCatalogProvisioningRequest({
+      companyId: 1, productCode: "", variantCode: "BLUE-M", displayName: "Blue medium",
+      sourceVersion: "portal-v1", correlationId: "corr-catalog-provisioning",
+    })).toThrow("productCode");
+
+    let received: RequestInit | undefined;
+    const response = await provisionCatalogProductVariant(
+      {
+        companyId: 1, externalId: "odoo-1", productCode: "SKU-1", variantCode: "BLUE-M",
+        displayName: "Blue medium", sourceVersion: "portal-v1", correlationId: "corr-catalog-provisioning",
+      },
+      async (_input, init) => {
+        received = init;
+        return new Response(JSON.stringify({ status: "CATALOG_UPSERTED", productId: "p-1", variantId: "v-1" }), { status: 200 });
+      },
+    );
+    expect(response).toMatchObject({ status: "CATALOG_UPSERTED", productId: "p-1", variantId: "v-1" });
+    expect(received?.headers).toEqual({ "content-type": "application/json", "x-correlation-id": "corr-catalog-provisioning" });
+    expect(received?.body).toContain('"active":true');
+  });
   it("requires correlation and scope inputs", () => {
     expect(() => assertScopedRequest({ companyId: 1, branchId: 7, correlationId: "" })).toThrow("correlationId");
     expect(() => assertScopedRequest({ companyId: 1, branchId: 7, correlationId: "corr-1" })).not.toThrow();

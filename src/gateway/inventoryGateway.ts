@@ -13,6 +13,7 @@ import { assertPutawayQuery, type InventoryPutawayQuery, type InventoryPutawayRu
 import { assertCompanyQuery, type InventoryCompanyQuery, type InventoryDeliveryMethod, type InventoryRoute, type InventoryRule } from "../contracts/inventory/configuration";
 import { assertBranchQuery, type InventoryBranchAvailabilityResponse, type InventoryBranchQuery, type InventoryBranchValuationResponse } from "../contracts/inventory/branchBalances";
 import { assertForecastQuery, type InventoryForecastQuery, type InventoryForecastResponse } from "../contracts/inventory/forecast";
+import { assertCatalogProvisioningRequest, type InventoryCatalogProvisioningRequest, type InventoryCatalogProvisioningResponse } from "../contracts/inventory/catalogProvisioning";
 export async function getAvailability(request: InventoryAvailabilityRequest, fetcher: typeof fetch = fetch): Promise<InventoryAvailabilityResponse> {
   assertScopedRequest(request);
   const response = await fetcher("/api/inventory/availability", {
@@ -147,6 +148,18 @@ export async function previewStockImport(request: InventoryImportPreviewRequest,
   if (response.ok) return response.json() as Promise<InventoryImportPreviewResponse>;
   const kind: InventoryGatewayError['kind'] = response.status === 401 ? 'unauthenticated' : response.status === 403 ? 'permission-denied' : 'transport';
   throw { kind, scope: request, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
+}
+
+export async function provisionCatalogProductVariant(request: InventoryCatalogProvisioningRequest, fetcher: typeof fetch = fetch): Promise<InventoryCatalogProvisioningResponse> {
+  assertCatalogProvisioningRequest(request);
+  const response = await fetcher('/api/inventory/catalog/product-variant', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-correlation-id': request.correlationId },
+    body: JSON.stringify({ ...request, active: request.active ?? true }),
+  });
+  if (response.ok) return response.json() as Promise<InventoryCatalogProvisioningResponse>;
+  const kind: InventoryGatewayError['kind'] = response.status === 401 ? 'unauthenticated' : response.status === 403 ? 'permission-denied' : 'transport';
+  throw { kind, scope: { companyId: request.companyId }, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
 }
 
 export function getCount(query: InventoryCountQuery, fetcher: typeof fetch = fetch): Promise<InventoryCountResponse> {
