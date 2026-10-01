@@ -29,6 +29,27 @@ export type InventoryLandedCostPreviewResponse = {
   }>;
 };
 
+export type InventoryLandedCostApplyLine = InventoryLandedCostPreviewLine & { locationId: number };
+
+export type InventoryLandedCostApplyRequest = {
+  companyId: number;
+  warehouseId: number;
+  reference: string;
+  totalAmount: number;
+  currency: string;
+  idempotencyKey: string;
+  lines: InventoryLandedCostApplyLine[];
+  correlationId: string;
+};
+
+export type InventoryLandedCostApplyResponse = {
+  operationId: string;
+  status: string;
+  replayed: boolean;
+  totalAmount: number;
+  allocationMethod: string;
+};
+
 export function assertLandedCostPreviewRequest(request: InventoryLandedCostPreviewRequest): void {
   if (!Number.isInteger(request.companyId) || request.companyId <= 0) throw new Error('companyId is required');
   if (!Number.isInteger(request.warehouseId) || request.warehouseId <= 0) throw new Error('warehouseId is required');
@@ -36,4 +57,10 @@ export function assertLandedCostPreviewRequest(request: InventoryLandedCostPrevi
   if (!request.currency.trim()) throw new Error('currency is required');
   if (!request.lines.length || request.lines.some(line => !line.productCode.trim() || !Number.isFinite(line.quantity) || line.quantity <= 0 || !Number.isFinite(line.formerUnitCost) || line.formerUnitCost < 0)) throw new Error('receipt lines are invalid');
   if (!request.correlationId.trim()) throw new Error('correlationId is required');
+}
+
+export function assertLandedCostApplyRequest(request: InventoryLandedCostApplyRequest): void {
+  assertLandedCostPreviewRequest(request);
+  if (!request.reference.trim() || !request.idempotencyKey.trim()) throw new Error('reference and idempotencyKey are required');
+  if (request.lines.some(line => !Number.isInteger(line.locationId) || line.locationId <= 0)) throw new Error('locationId is required for every line');
 }

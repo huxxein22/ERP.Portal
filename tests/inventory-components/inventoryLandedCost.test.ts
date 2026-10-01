@@ -8,4 +8,10 @@ describe('Inventory Landed Cost component', () => {
     expect(html).toContain('Preview calculated with financial values masked.');
     expect(html).toContain('does not persist a landed-cost record or post Accounting');
   });
+
+  it('renders a separate permissioned apply screen', () => {
+    const html = renderInventoryLandedCost({ companyId: 1, warehouseId: 7, mode: 'apply' });
+    expect(html).toContain("fetch('/api/inventory/landed-costs/apply'");
+    expect(html).toContain('Development-only, permissioned valuation update');
+  });
 });

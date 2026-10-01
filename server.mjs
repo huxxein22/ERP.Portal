@@ -28,6 +28,7 @@ import { renderInventoryLandedCost } from './src/components/inventory/inventoryL
 import { renderInventoryAlerts } from './src/components/inventory/inventoryAlerts.mjs';
 import { renderInventoryForecast } from './src/components/inventory/inventoryForecast.mjs';
 import { assertBranchQuery } from './src/contracts/inventory/branchBalancesRuntime.mjs';
+import { assertLandedCostApplyRequest } from './src/contracts/inventory/landedCostRuntime.mjs';
 
 const port = Number(process.env.PORT ?? 3000);
 const inventoryBaseUrl = process.env.INVENTORY_BASE_URL;
@@ -168,6 +169,12 @@ const server = createServer((request, response) => {
     return;
   }
 
+  if (request.method === 'GET' && request.url === '/inventory/landed-costs/apply') {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    response.end(renderInventoryLandedCost({ mode: 'apply' }));
+    return;
+  }
+
   if (request.url === '/inventory-backend/health') {
     if (!inventoryBaseUrl) {
       response.writeHead(503, { 'content-type': 'application/json' });
@@ -298,12 +305,24 @@ const server = createServer((request, response) => {
     return;
   }
 
-  if (request.method === 'POST' && ['/api/inventory/putaway/rules', '/api/inventory/routes', '/api/inventory/rules', '/api/inventory/delivery-methods', '/api/inventory/stock/receive', '/api/inventory/stock/reserve', '/api/inventory/stock/release', '/api/inventory/stock/issue', '/api/inventory/stock/adjust', '/api/inventory/stock/scrap', '/api/inventory/stock/scrap/reverse', '/api/inventory/landed-costs/preview', '/api/inventory/count/start', '/api/inventory/count/line', '/api/inventory/count/finalize', '/api/inventory/count/apply-difference', '/api/inventory/accounting/plan'].includes(request.url)) {
+  if (request.method === 'POST' && ['/api/inventory/putaway/rules', '/api/inventory/routes', '/api/inventory/rules', '/api/inventory/delivery-methods', '/api/inventory/stock/receive', '/api/inventory/stock/reserve', '/api/inventory/stock/release', '/api/inventory/stock/issue', '/api/inventory/stock/adjust', '/api/inventory/stock/scrap', '/api/inventory/stock/scrap/reverse', '/api/inventory/landed-costs/preview', '/api/inventory/landed-costs/apply', '/api/inventory/count/start', '/api/inventory/count/line', '/api/inventory/count/finalize', '/api/inventory/count/apply-difference', '/api/inventory/accounting/plan'].includes(request.url)) {
     readBody(request).then(async (body) => {
       if (!body.trim()) {
         response.writeHead(400, { 'content-type': 'application/json' });
         response.end(JSON.stringify({ error: 'A JSON request body is required' }));
         return;
+      }
+      if (request.url === '/api/inventory/landed-costs/apply') {
+        try {
+          const payload = JSON.parse(body);
+          const headerCorrelationId = request.headers['x-correlation-id'];
+          if (!payload.correlationId && headerCorrelationId) payload.correlationId = headerCorrelationId;
+          assertLandedCostApplyRequest(payload);
+        } catch (error) {
+          response.writeHead(400, { 'content-type': 'application/json' });
+          response.end(JSON.stringify({ error: error instanceof Error ? error.message : 'Invalid landed cost apply request' }));
+          return;
+        }
       }
       const correlationId = request.headers['x-correlation-id'] ?? randomUUID();
       if (!inventoryBaseUrl) {
