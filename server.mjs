@@ -23,6 +23,7 @@ import { renderInventoryPutawayWrite } from './src/components/inventory/inventor
 import { renderInventoryRuleWrite } from './src/components/inventory/inventoryRuleWrite.mjs';
 import { renderInventoryMoves } from './src/components/inventory/inventoryMoves.mjs';
 import { renderInventoryScrap } from './src/components/inventory/inventoryScrap.mjs';
+import { renderInventoryScrapReverse } from './src/components/inventory/inventoryScrapReverse.mjs';
 import { renderInventoryAlerts } from './src/components/inventory/inventoryAlerts.mjs';
 import { renderInventoryForecast } from './src/components/inventory/inventoryForecast.mjs';
 import { assertBranchQuery } from './src/contracts/inventory/branchBalancesRuntime.mjs';
@@ -151,6 +152,12 @@ const server = createServer((request, response) => {
   if (request.method === 'GET' && request.url === '/inventory/scrap') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     response.end(renderInventoryScrap());
+    return;
+  }
+
+  if (request.method === 'GET' && request.url === '/inventory/scrap/reverse') {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    response.end(renderInventoryScrapReverse());
     return;
   }
 
@@ -284,7 +291,7 @@ const server = createServer((request, response) => {
     return;
   }
 
-  if (request.method === 'POST' && ['/api/inventory/putaway/rules', '/api/inventory/routes', '/api/inventory/rules', '/api/inventory/delivery-methods', '/api/inventory/stock/receive', '/api/inventory/stock/reserve', '/api/inventory/stock/release', '/api/inventory/stock/issue', '/api/inventory/stock/adjust', '/api/inventory/stock/scrap', '/api/inventory/count/start', '/api/inventory/count/line', '/api/inventory/count/finalize', '/api/inventory/count/apply-difference', '/api/inventory/accounting/plan'].includes(request.url)) {
+  if (request.method === 'POST' && ['/api/inventory/putaway/rules', '/api/inventory/routes', '/api/inventory/rules', '/api/inventory/delivery-methods', '/api/inventory/stock/receive', '/api/inventory/stock/reserve', '/api/inventory/stock/release', '/api/inventory/stock/issue', '/api/inventory/stock/adjust', '/api/inventory/stock/scrap', '/api/inventory/stock/scrap/reverse', '/api/inventory/count/start', '/api/inventory/count/line', '/api/inventory/count/finalize', '/api/inventory/count/apply-difference', '/api/inventory/accounting/plan'].includes(request.url)) {
     readBody(request).then(async (body) => {
       if (!body.trim()) {
         response.writeHead(400, { 'content-type': 'application/json' });

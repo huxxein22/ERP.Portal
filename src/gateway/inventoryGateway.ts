@@ -15,7 +15,7 @@ import { assertBranchQuery, type InventoryBranchAvailabilityResponse, type Inven
 import { assertForecastQuery, type InventoryForecastQuery, type InventoryForecastResponse } from "../contracts/inventory/forecast";
 import { assertCatalogProvisioningRequest, type InventoryCatalogProvisioningRequest, type InventoryCatalogProvisioningResponse } from "../contracts/inventory/catalogProvisioning";
 import { assertAccountingPlanRequest, type InventoryAccountingPlanRequest, type InventoryAccountingPlanResponse } from "../contracts/inventory/accountingImpact";
-import { assertScrapRequest, type InventoryScrapRequest, type InventoryScrapResponse } from "../contracts/inventory/scrap";
+import { assertScrapRequest, assertScrapReversalRequest, type InventoryScrapRequest, type InventoryScrapResponse, type InventoryScrapReversalRequest } from "../contracts/inventory/scrap";
 export async function getAvailability(request: InventoryAvailabilityRequest, fetcher: typeof fetch = fetch): Promise<InventoryAvailabilityResponse> {
   assertScopedRequest(request);
   const response = await fetcher("/api/inventory/availability", {
@@ -179,6 +179,18 @@ export async function planAccountingImpact(request: InventoryAccountingPlanReque
 export async function scrapInventory(request: InventoryScrapRequest, fetcher: typeof fetch = fetch): Promise<InventoryScrapResponse> {
   assertScrapRequest(request);
   const response = await fetcher('/api/inventory/stock/scrap', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-correlation-id': request.correlationId },
+    body: JSON.stringify(request),
+  });
+  if (response.ok) return response.json() as Promise<InventoryScrapResponse>;
+  const kind: InventoryGatewayError['kind'] = response.status === 401 ? 'unauthenticated' : response.status === 403 ? 'permission-denied' : 'transport';
+  throw { kind, scope: { companyId: request.companyId }, message: `Inventory gateway returned ${response.status}` } satisfies InventoryGatewayError;
+}
+
+export async function reverseScrapInventory(request: InventoryScrapReversalRequest, fetcher: typeof fetch = fetch): Promise<InventoryScrapResponse> {
+  assertScrapReversalRequest(request);
+  const response = await fetcher('/api/inventory/stock/scrap/reverse', {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-correlation-id': request.correlationId },
     body: JSON.stringify(request),

@@ -67,6 +67,11 @@ describe('ERP Portal Inventory Gateway forwarding E2E', () => {
         response.end(JSON.stringify({ operationId: 'e2e-operation', status: 'committed' }));
         return;
       }
+      if (request.method === 'POST' && (request.url === '/api/inventory/stock/scrap' || request.url === '/api/inventory/stock/scrap/reverse')) {
+        response.writeHead(200, { 'content-type': 'application/json' });
+        response.end(JSON.stringify({ operationId: 'e2e-scrap-operation', status: 'committed', replayed: false }));
+        return;
+      }
       if (request.method === 'POST' && request.url === '/api/inventory/catalog/product-variant') {
         response.writeHead(200, { 'content-type': 'application/json' });
         response.end(JSON.stringify({ status: 'CATALOG_UPSERTED', productId: 'e2e-product', variantId: 'e2e-variant' }));
@@ -150,6 +155,30 @@ describe('ERP Portal Inventory Gateway forwarding E2E', () => {
     expect(forwarded.path).toContain('warehouseId=11');
     expect(forwarded.authorization).toBe('Bearer forecast-token');
     expect(forwarded.correlation).toBe('portal-forecast-header');
+  });
+
+  it('forwards Scrap reversal through the Gateway without exposing private service access', async () => {
+    const body = JSON.stringify({
+      companyId: 1,
+      warehouseId: 11,
+      productCode: 'SKU-1',
+      variantCode: 'BLUE-M',
+      originalIdempotencyKey: 'scrap-original-e2e',
+      reversalIdempotencyKey: 'scrap-reversal-e2e',
+      reason: 'portal correction',
+      correlationId: 'portal-scrap-reversal-e2e',
+    });
+    const response = await fetch(`${portalUrl}/api/inventory/stock/scrap/reverse`, {
+      method: 'POST',
+      headers: { authorization: 'Bearer e2e-token', 'x-correlation-id': 'portal-scrap-reversal-header', 'content-type': 'application/json' },
+      body,
+    });
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ operationId: 'e2e-scrap-operation' });
+    expect(forwarded.path).toBe('/api/inventory/stock/scrap/reverse');
+    expect(JSON.parse(forwarded.body)).toEqual(JSON.parse(body));
+    expect(forwarded.authorization).toBe('Bearer e2e-token');
+    expect(forwarded.correlation).toBe('portal-scrap-reversal-header');
   });
 
   it('forwards explicit Catalog provisioning without exposing a database or private gRPC route', async () => {
