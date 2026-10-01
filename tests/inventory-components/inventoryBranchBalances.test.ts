@@ -8,5 +8,7 @@ describe('Inventory branch balances component', () => {
     expect(html).toContain('/api/inventory/branch-valuation');
     expect(html).toContain('Access denied for this company/branch scope.');
     expect(html).toContain('Inventory gateway is unavailable. Try again later.');
+    expect(html).toContain('name="productCode"');
+    expect(html).toContain('name="variantCode"');
   });
 });
