@@ -27,6 +27,7 @@ import { renderInventoryScrapReverse } from './src/components/inventory/inventor
 import { renderInventoryLandedCost } from './src/components/inventory/inventoryLandedCost.mjs';
 import { renderInventoryAlerts } from './src/components/inventory/inventoryAlerts.mjs';
 import { renderInventoryForecast } from './src/components/inventory/inventoryForecast.mjs';
+import { renderInventoryDeliveryMethods } from './src/components/inventory/inventoryDeliveryMethods.mjs';
 import { assertBranchQuery } from './src/contracts/inventory/branchBalancesRuntime.mjs';
 import { assertLandedCostApplyRequest } from './src/contracts/inventory/landedCostRuntime.mjs';
 
@@ -94,6 +95,12 @@ const server = createServer((request, response) => {
   if (request.method === 'GET' && request.url === '/inventory/configuration') {
     response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
     response.end(renderInventoryConfiguration());
+    return;
+  }
+
+  if (request.method === 'GET' && request.url === '/inventory/delivery-methods') {
+    response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+    response.end(renderInventoryDeliveryMethods());
     return;
   }
 
